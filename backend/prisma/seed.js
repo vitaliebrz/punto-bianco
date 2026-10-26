@@ -14,6 +14,16 @@ if (!process.env.SEED_PASSWORD) {
   process.exit(1);
 }
 
+// Afișăm pe ce bază de date scriem (doar host-ul, fără parolă),
+// ca să fie evident dacă e ramura Neon "dev" sau altceva.
+let dbHost = '(necunoscut)';
+try {
+  dbHost = new URL(process.env.DATABASE_URL).hostname;
+} catch {
+  // DATABASE_URL lipsește sau e invalid — Prisma va da eroarea potrivită
+}
+console.log(`Seed pe baza de date: ${dbHost}`);
+
 const prisma = new PrismaClient();
 
 const USERS = [
