@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import { requireAuth, readOnlyGuard } from './middleware/auth.js';
@@ -20,7 +21,13 @@ if (process.env.TRUST_PROXY) {
   app.set('trust proxy', Number(process.env.TRUST_PROXY));
 }
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
+// Header-e HTTP de securitate standard (ex. interzice încărcarea API-ului în iframe)
+app.use(helmet());
+
+// Doar frontend-ul nostru poate chema API-ul din browser.
+// Browserul trimite adresa fără "/" la final, deci o scoatem și din configurare.
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').trim().replace(/\/+$/, '');
+app.use(cors({ origin: frontendUrl }));
 app.use(express.json({ limit: '10kb' }));
 
 // Verificare rapidă că serverul rulează (folosit și de Render pentru health check)
