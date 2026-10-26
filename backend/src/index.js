@@ -13,8 +13,12 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Pe Render aplicația stă în spatele unui proxy: așa vedem IP-ul real (pentru rate limit).
-app.set('trust proxy', 1);
+// În spatele unui proxy (Render) IP-ul real vine în header-ul X-Forwarded-For.
+// Îl credem DOAR dacă TRUST_PROXY e setat (numărul de proxy-uri din fața aplicației);
+// altfel oricine ar putea trimite un IP fals și ar ocoli limita de încercări la login.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY));
+}
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
 app.use(express.json({ limit: '10kb' }));
