@@ -1,0 +1,158 @@
+// Schema bazei de date Punto Bianco.
+// Ideea centrală: o VIZITĂ (sejur) = sosire/plecare + 1-2 persoane (pacient, însoțitor)
+// + opțional cazare + opțional transfer + coordonatorul responsabil.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Neon pooled (aplicația)
+  directUrl = env("DIRECT_URL") // Neon direct (migrări)
+}
+
+// ---------- Enum-uri ----------
+
+enum Role {
+  ADMIN
+  COORDONATOR
+  BACK_OFFICE
+  MANAGER_CAZARI
+  SOFER
+  CONTABIL // doar citire
+  CONTROL_CALITATE // doar citire
+}
+
+enum BackOfficeStatus {
+  NEPRELUAT
+  INCEPUT
+  FINALIZAT
+}
+
+enum ApartmentType {
+  STUDIO
+  UN_DORMITOR_DIVAN
+  DOUA_DORMITOARE
+  DOUA_DORMITOARE_LIVING
+}
+
+enum AccommodationStatus {
+  NEPRELUCRAT
+  REZERVAT
+}
+
+enum TransferDirection {
+  SOSIRE // doar de la aeroport
+  PLECARE // doar spre aeroport
+  DUS_INTORS
+}
+
+enum NotificationType {
+  VIZITA_NOUA_BACK_OFFICE
+  CAZARE_NOUA
+  TRANSFER_NOU
+}
+
+// ---------- Modele ----------
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  coordinatedVisits Visit[]        @relation("VisitCoordinator")
+  createdVisits     Visit[]        @relation("VisitCreatedBy")
+  notifications     Notification[]
+}
+
+model Visit {
+  id           Int      @id @default(autoincrement())
+  arrivalAt    DateTime // data și ora sosirii (UTC)
+  departureAt  DateTime // data și ora plecării (UTC)
+  hasCompanion Boolean  @default(false)
+
+  coordinatorId Int
+  coordinator   User @relation("VisitCoordinator", fields: [coordinatorId], references: [id])
+  createdById   Int
+  createdBy     User @relation("VisitCreatedBy", fields: [createdById], references: [id])
+
+  backOfficeStatus     BackOfficeStatus @default(NEPRELUAT)
+  backOfficeStartedAt  DateTime?
+  backOfficeFinishedAt DateTime?
+
+  externalId String?  @unique // ID în Bitrix24 / alte sisteme externe
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  patients      Patient[]
+  accommodation Accommodation?
+  transfer      Transfer?
+  notifications Notification[]
+
+  @@index([arrivalAt])
+  @@index([departureAt])
+}
+
+// Persoană din vizită: pacientul principal sau însoțitorul (isCompanion = true)
+model Patient {
+  id           Int        @id @default(autoincrement())
+  visitId      Int
+  visit        Visit      @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  isCompanion  Boolean    @default(false)
+  availability String? // disponibilitatea în perioada sejurului (comentariu)
+  treatment    Treatment?
+
+  @@index([visitId])
+}
+
+// Tratament (text liber). Însoțitorul fără tratament nu are rând aici.
+model Treatment {
+  id          Int     @id @default(autoincrement())
+  patientId   Int     @unique
+  patient     Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  description String
+}
+
+// Lipsa rândului = vizita nu are nevoie de cazare
+model Accommodation {
+  id            Int                 @id @default(autoincrement())
+  visitId       Int                 @unique
+  visit         Visit               @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  apartmentType ApartmentType
+  isFree        Boolean             @default(false)
+  freeDays      Int? // pentru câte zile e gratuită
+  status        AccommodationStatus @default(NEPRELUCRAT)
+  reservedAt    DateTime?
+}
+
+// Lipsa rândului = vizita nu are nevoie de transfer
+model Transfer {
+  id        Int               @id @default(autoincrement())
+  visitId   Int               @unique
+  visit     Visit             @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  isFree    Boolean           @default(false) // false = contra cost
+  direction TransferDirection
+}
+
+// O notificare per utilizator (se creează pentru toți userii cu rolul vizat)
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitId   Int?
+  visit     Visit?           @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  message   String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+}
