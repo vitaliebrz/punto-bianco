@@ -1,6 +1,6 @@
 # Plan 04 — Ziua 2: fluxul vizitei (înregistrare → notificări → ecrane pe roluri)
 
-**Ziua 2** · Ramura: `feature/visit-registration-flow` · Status: **în lucru**
+**Ziua 2** · Ramura: `feature/visit-registration-flow` · Status: **finalizat**
 
 ## Context
 Ziua 1 e în `main` (PR #1–#3): schemă, login, roluri, seed, teste, CI. Acum construim Pașii 1 și 2 din cerință:
@@ -254,4 +254,44 @@ FullCalendar nu se testează în jsdom; testăm funcțiile noastre.
 3. Același flux de două ori în paralel (două taburi Back office apasă „Început”) → unul reușește, celălalt primește mesajul de status deja schimbat.
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+
+### Rezultat
+- **Backend:**
+  - validarea formularului;
+  - crearea vizitei și a notificărilor într-o tranzacție;
+  - listele vizitelor și ale cazărilor, ordonate după sosire;
+  - statusurile Back office și cazare, protejate la apăsări simultane (409);
+  - calendarul șoferului;
+  - notificările proprii fiecărui utilizator.
+- **Frontend:**
+  - antet cu meniu pe roluri și clopoțel;
+  - formularul „Vizită nouă”;
+  - lista și detaliile vizitelor;
+  - paginile Back office și Cazări;
+  - calendarul FullCalendar.
+
+  Fiecare rol ajunge după login direct pe prima lui pagină.
+- **Teste:** **213** în backend (inclusiv fluxul complet pe Neon `dev`, cu ștergerea datelor de test la final) și **39** în frontend. Lint și build fără avertismente.
+- **Verificat pe baza `dev`:**
+  - după rularea testelor, baza a rămas exact ca după seed (10 vizite, 8 cazări, 8 transferuri, 0 notificări);
+  - cele 8 cereri de cazare din seed vin sortate după sosire;
+  - calendarul întoarce evenimentele din seed;
+  - accesul fiecărui rol e cel din tabelul de mai sus.
+
+### Abateri
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| Testele frontend toate la pasul 11 | Testele formularului (pasul 8) și ale paginilor de status (pasul 9) au intrat în commit-urile paginilor; la pasul 11 au rămas meniul, clopoțelul și textul din calendar | erorile se prind imediat; fiecare commit vine cu testele lui |
+| — | `src/test/helpers.jsx`: serverul simulat și utilizatorii demo, comune tuturor testelor frontend | fără cod copiat între teste |
+| `HomePage` dispare la pasul 7 | A rămas până la pasul 10 (pagina de bun venit, în noul antet), apoi a fost înlocuită de `HomeRedirect` | până la pasul 10 nu existau încă toate paginile spre care să trimită |
+| — | Rolul utilizatorului apare în antet, sub nume | după dispariția paginii de bun venit, rolul trebuia afișat altundeva |
+| FullCalendar (fără versiune) | **6.1.22**, nu 7.x | seria 7 e foarte nouă și cere încă un pachet (`temporal-polyfill`); seria 6 e stabilă și bine documentată |
+| — | Calendarul se încarcă doar când e deschis (`lazy`) | FullCalendar are ~230 KB; ceilalți utilizatori nu-l mai descarcă, iar build-ul nu mai dă avertismentul de 500 KB |
+| `transfersRangeSchema` în `schemas/visit.js` | În `schemas/transfer.js` | ține de calendar, nu de formularul vizitei |
+| — | `lib/params.js` (`parseId`), `services/visits.js` (ce se încarcă și forma trimisă clientului) | cod refolosit de mai multe rute |
+| Mesajul pentru Manager cazări | Conține și „gratuită N zile” când e cazul | informația e utilă la căutarea apartamentului |
+
+### Limitări cunoscute
+- Listele de vizite și de cazări nu sunt împărțite pe pagini. Merge bine pentru volumul unei clinici; la mii de vizite s-ar adăuga paginare sau filtre.
+- Notificările se verifică la 30 de secunde (nu instant). E suficient pentru flux și nu cere conexiuni permanente pe Render.
+- Grila calendarului și câmpurile de dată din formular folosesc ora calculatorului. Textele afișează ora Chișinăului. La clinică cele două coincid.

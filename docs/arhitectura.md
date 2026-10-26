@@ -28,16 +28,20 @@ punto-bianco/
 │  ├─ src/
 │  │  ├─ app.js               createApp(): aplicația Express — securitate, CORS, rute, erori
 │  │  ├─ index.js             pornește aplicația pe un port
-│  │  ├─ lib/prisma.js        clientul unic pentru baza de date
+│  │  ├─ lib/                 prisma.js (clientul bazei), format.js (ora clinicii), params.js (id din URL)
 │  │  ├─ middleware/          auth.js (token, roluri, doar-citire), validate.js (zod)
-│  │  ├─ schemas/             formele acceptate ale datelor (ex. login)
-│  │  └─ routes/              auth.js (login, /me), users.js (coordonatori)
+│  │  ├─ schemas/             formele acceptate ale datelor: auth.js, visit.js, transfer.js
+│  │  ├─ services/            logică fără HTTP: notificări, evenimente de calendar, forma vizitei
+│  │  └─ routes/              auth, users, visits, accommodations, transfers, notifications
 │  └─ .env.example            model pentru variabilele de mediu
 ├─ frontend/
 │  └─ src/
 │     ├─ api.js               singurul loc care vorbește cu backend-ul
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
-│     ├─ pages/               LoginPage, HomePage
+│     ├─ components/          AppLayout (antet + meniu), NotificationBell, FormField, StatusBadge…
+│     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar
+│     ├─ navigation.js        ce pagini vede fiecare rol (meniul)
+│     ├─ labels.js, format.js denumiri în română, data și ora în ora clinicii
 │     ├─ test/                teste automate (Vitest + Testing Library)
 │     └─ roles.js             denumirile rolurilor în română
 ├─ .github/workflows/ci.yml   GitHub Actions: lint, teste, build la fiecare PR
@@ -77,6 +81,61 @@ Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e 
 | `CONTABIL` | Contabil | **doar citire** |
 | `CONTROL_CALITATE` | Control calitate | **doar citire** |
 
+## Fluxul vizitei
+
+1. **Coordonatorul înregistrează vizita** (pagina „Vizită nouă” → `POST /api/visits`).
+   - Datele trec prin validarea strictă din `schemas/visit.js`: câmpurile în plus sunt respinse, iar plecarea trebuie să fie după sosire.
+   - Coordonatorul responsabil trebuie să fie un coordonator activ.
+2. **Într-o singură tranzacție** se salvează vizita, persoanele, tratamentele, cazarea, transferul **și notificările**. Fie se salvează tot, fie nimic.
+3. **Cine e anunțat** (`services/notifications.js`):
+   - fiecare utilizator **Back office** activ: „Vizită nouă: Marco Rossi (+ însoțitor), sosire 02.11.2026 14:30”;
+   - fiecare **Manager cazări** activ, **doar dacă vizita are cazare**: „Cerere de cazare: Marco Rossi – Studio, gratuită 3 zile, 02.11–09.11”;
+   - **Șoferul nu primește notificare**: vede transferul în calendar.
+4. **Clopoțelul** din antet (Back office, Manager cazări) verifică notificările la 30 de secunde și când utilizatorul revine în tab.
+5. **Statusurile** se schimbă doar înainte, pas cu pas:
+   - Back office: `NEPRELUAT` → `INCEPUT` → `FINALIZAT`;
+   - cazare: `NEPRELUCRAT` → `REZERVAT`.
+
+   Actualizarea are condiție pe statusul curent. Dacă doi oameni apasă în același timp, doar primul reușește; al doilea primește **409** și lista se reîncarcă.
+6. **Calendarul șoferului** (`services/transferEvents.js`):
+   - `SOSIRE` → un eveniment la ora sosirii;
+   - `PLECARE` → la ora plecării;
+   - `DUS_INTORS` → ambele.
+
+   În pagină, textul e „Sosire 14:30 – Nume pacient(i)”.
+
+**Ora:** în bază orele sunt în UTC. Textele (notificări, liste, calendar) le afișează în ora clinicii, **Europe/Chisinau**, cu trecerea automată la ora de vară sau de iarnă. Formularul și grila calendarului folosesc ora calculatorului, care la clinică e aceeași.
+
+## API
+
+Toate rutele de mai jos, în afară de login și health, cer `Authorization: Bearer <token>`. Admin are acces peste tot; Contabil și Control calitate pot face doar GET.
+
+| Metodă | Rută | Cine | Ce face |
+|---|---|---|---|
+| GET | `/api/health` | oricine | verificare că serverul rulează |
+| POST | `/api/auth/login` | oricine | login → token |
+| GET | `/api/auth/me` | conectat | utilizatorul curent |
+| GET | `/api/users/coordinators` | conectat | coordonatorii activi (lista din formular) |
+| GET | `/api/visits` | Coordonator, Back office, Contabil, Control calitate | vizitele, ordonate după sosire |
+| GET | `/api/visits/:id` | aceiași + Manager cazări | detaliile unei vizite |
+| POST | `/api/visits` | Coordonator | înregistrează vizita + notificările |
+| PATCH | `/api/visits/:id/back-office-status` | Back office | `{ "status": "INCEPUT" \| "FINALIZAT" }` |
+| GET | `/api/accommodations` | Manager cazări, Contabil, Control calitate | cererile de cazare, ordonate după sosire |
+| PATCH | `/api/accommodations/:id/status` | Manager cazări | `{ "status": "REZERVAT" }` |
+| GET | `/api/transfers?from=…&to=…` | Șofer, Contabil, Control calitate | evenimentele de calendar din interval (maxim 62 de zile) |
+| GET | `/api/notifications` | conectat | ultimele 20 de notificări proprii + numărul celor necitite |
+| PATCH | `/api/notifications/:id/read` | conectat | marchează o notificare proprie ca citită |
+| POST | `/api/notifications/read-all` | conectat | marchează toate notificările proprii ca citite |
+
+**Coduri de răspuns:**
+- 400: date invalide, cu `details: [{ field, message }]` pentru fiecare câmp;
+- 401: fără login sau sesiune expirată;
+- 403: rolul nu are voie;
+- 404: nu există;
+- 409: statusul a fost deja schimbat.
+
+Aceeași API poate fi folosită ulterior de Bitrix24 sau de alte aplicații.
+
 ## Modelul de date
 
 Tabelul central e **Visit** (vizita / sejurul): o venire a unui pacient la clinică, cu sosire, plecare și coordonatorul responsabil. De vizită țin persoanele, cazarea și transferul.
@@ -101,7 +160,7 @@ erDiagram
 | `Treatment` | tratamentul (text liber) al unei persoane; însoțitorul fără tratament nu are rând aici |
 | `Accommodation` | tipul apartamentului (studio / 1 dormitor + divan / 2 dormitoare / 2 dormitoare + living), dacă e gratuită și pentru câte zile, statusul `NEPRELUCRAT` / `REZERVAT` |
 | `Transfer` | gratuit sau contra cost, direcția: `SOSIRE`, `PLECARE` sau `DUS_INTORS` |
-| `Notification` | o notificare pentru un utilizator, legată de o vizită, cu marcajul „citit” |
+| `Notification` | o notificare pentru un utilizator, legată de o vizită, cu marcajul „citit”; tipuri folosite: `VIZITA_NOUA_BACK_OFFICE`, `CAZARE_NOUA` (`TRANSFER_NOU` există în schemă, dar nu e folosit: șoferul nu primește notificări) |
 
 Reguli de citit în model:
 - **Lipsa unui rând înseamnă „nu e nevoie”:** dacă o vizită nu are rând în `Accommodation`, pacientul nu are nevoie de cazare. La fel pentru `Transfer`.
