@@ -1,58 +1,12 @@
 // Formularul „Vizită nouă”, lista și detaliile, cu backend-ul simulat (fetch fals).
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import App from '../App'
-import AuthProvider from '../auth/AuthProvider'
 import { buildVisitPayload, initialVisitForm } from '../visitForm'
+import { json, renderAs, sentBody, USERS, VISIT } from './helpers'
 
-const COORDINATOR = { id: 2, email: 'coordonator1@puntobianco.demo', fullName: 'Ana Ciobanu', role: 'COORDONATOR' }
-const CONTABIL = { id: 8, email: 'contabil@puntobianco.demo', fullName: 'Natalia Ceban', role: 'CONTABIL' }
-
-const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
-
-const VISIT = {
-  id: 42,
-  arrivalAt: '2026-11-02T12:30:00.000Z',
-  departureAt: '2026-11-09T08:00:00.000Z',
-  hasCompanion: true,
-  coordinator: { id: 2, fullName: 'Ana Ciobanu' },
-  backOfficeStatus: 'NEPRELUAT',
-  backOfficeStartedAt: null,
-  backOfficeFinishedAt: null,
-  patients: [
-    { id: 1, firstName: 'Marco', lastName: 'Rossi', isCompanion: false, treatment: 'Implant', availability: 'După 12:00' },
-    { id: 2, firstName: 'Anna', lastName: 'Rossi', isCompanion: true, treatment: null, availability: null },
-  ],
-  accommodation: { id: 5, apartmentType: 'STUDIO', isFree: true, freeDays: 3, status: 'NEPRELUCRAT' },
-  transfer: { isFree: false, direction: 'DUS_INTORS' },
-}
-
-// routes = { 'GET /api/visits': răspuns | (options) => răspuns }
-function mockFetch(routes) {
-  const fetchMock = vi.fn(async (url, options = {}) => {
-    const key = `${options.method ?? 'GET'} ${new URL(url).pathname}`
-    const handler = routes[key]
-    if (!handler) throw new Error(`Cerere neașteptată: ${key}`)
-    return typeof handler === 'function' ? handler(options) : handler
-  })
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
-}
-
-function renderAs(user, path, routes) {
-  localStorage.setItem('pb_token', 'token')
-  const fetchMock = mockFetch({ 'GET /api/auth/me': json(200, { user }), ...routes })
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </MemoryRouter>,
-  )
-  return fetchMock
-}
+const COORDINATOR = USERS.coordonator
+const CONTABIL = USERS.contabil
 
 const coordinatorsRoute = {
   'GET /api/users/coordinators': json(200, [
@@ -135,8 +89,7 @@ describe('formularul „Vizită nouă”', () => {
     expect(await screen.findByText('Vizita a fost înregistrată, echipa a fost anunțată.')).toBeInTheDocument()
     expect(screen.getByText('Detalii vizită')).toBeInTheDocument()
 
-    const [, options] = fetchMock.mock.calls.find(([, o]) => o?.method === 'POST')
-    expect(JSON.parse(options.body)).toEqual({
+    expect(sentBody(fetchMock, 'POST', '/api/visits')).toEqual({
       patient: { firstName: 'Marco', lastName: 'Rossi', treatment: 'Implant', availability: '' },
       companion: { firstName: 'Anna', lastName: 'Rossi', treatment: 'Albire', availability: '' },
       arrivalAt: new Date('2026-11-02T14:30').toISOString(),

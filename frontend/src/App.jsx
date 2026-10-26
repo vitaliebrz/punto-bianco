@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './auth/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 import { PAGE_ROLES } from './navigation'
+import AccommodationsPage from './pages/AccommodationsPage'
+import BackOfficePage from './pages/BackOfficePage'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import NewVisitPage from './pages/NewVisitPage'
@@ -23,6 +25,12 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute roles={PAGE_ROLES.visitDetails} />}>
             <Route path="/vizite/:id" element={<VisitDetailsPage />} />
+          </Route>
+          <Route element={<ProtectedRoute roles={PAGE_ROLES.backOffice} />}>
+            <Route path="/back-office" element={<BackOfficePage />} />
+          </Route>
+          <Route element={<ProtectedRoute roles={PAGE_ROLES.accommodations} />}>
+            <Route path="/cazari" element={<AccommodationsPage />} />
           </Route>
         </Route>
       </Route>
