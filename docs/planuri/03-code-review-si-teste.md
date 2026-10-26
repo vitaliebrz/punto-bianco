@@ -1,6 +1,6 @@
 # Plan 03 — Code review, reparații și teste automate
 
-**Ziua 1, pasul 3** · Ramuri: `feature/auth-and-seed` (reparații) → `test/automated-tests` (teste + CI) · Status: **partea A finalizată, partea B în lucru**
+**Ziua 1, pasul 3** · Ramuri: `feature/auth-and-seed` (reparații) → `test/automated-tests` (teste + CI) · Status: **finalizat** (bifa CI se confirmă în PR #3)
 
 ## Scop
 Am făcut code review pe tot codul de pe `feature/auth-and-seed`, înainte de merge. Reparăm problemele găsite, apoi adăugăm teste automate permanente care rulează cu `npm test`. Testele rulează și pe GitHub, la fiecare Pull Request (GitHub Actions).
@@ -124,5 +124,17 @@ Apoi push, PR #3 (cu bifa CI) și merge.
 
 **Abatere:** afișarea host-ului în seed (din reparația #2) are un commit separat: `chore(db): print target database host in seed`.
 
-### Partea B
-_Se completează la final._
+### Partea B (finalizată)
+| Ce | Rezultat |
+|---|---|
+| Refactor `createApp()` / `createAuthRouter()` | testele vechi (HTTP, login real, IP fals) trec neschimbate |
+| Teste backend | **106 teste** în 4 fișiere, toate trec (~11 s). Fără baza de date: 87 trec și 19 sunt sărite. |
+| Teste frontend | **8 teste**, toate trec. Cu bug-ul #4 reintrodus intenționat, testul „server indisponibil” pică, deci testele prind regresii. |
+| CI | `.github/workflows/ci.yml` cu 2 joburi (backend, frontend), Node 20, `npm ci`. YAML validat local; prima rulare reală e la PR #3. |
+
+**Abateri:**
+- **Locul testelor frontend:** sunt în `src/test/` (`auth.test.jsx` + `setup.js`), nu în `src/__tests__/`.
+- **Configurarea Vitest pentru frontend** stă în `vite.config.js` (cheia `test`), nu într-un fișier separat.
+- **Instalarea pachetelor de test** s-a făcut cu `npx npm@11`, din cauza bug-ului `edgesOut` din npm 10.8. `npm ci` (folosit în CI) funcționează cu npm 10. npm 11 nu rulează scripturile de instalare pentru pachetele noi fără aprobare; asta nu afectează CI-ul, care folosește npm 10.
+- **Simularea CI local:** clientul Prisma citește singur `backend/.env`, chiar și din alt folder. Sărirea testelor fără bază de date a fost verificată setând explicit `DATABASE_URL` și `SEED_PASSWORD` la valori goale.
+- **În plus față de plan:** teste pentru token expirat și pentru `TRUST_PROXY` setat (fiecare IP are propriul contor).

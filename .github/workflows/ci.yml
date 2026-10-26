@@ -1,0 +1,60 @@
+# Rulează automat lint, teste și build la fiecare Pull Request și la fiecare push pe main.
+# Rezultatul apare în PR ca bifă verde (totul a trecut) sau roșie (ceva a picat).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Un push nou pe aceeași ramură anulează verificarea veche, încă în curs
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (teste)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Doar pentru teste; secretele reale nu se pun pe GitHub.
+      # Fără DATABASE_URL, testele de integrare (db.test.js) se sar automat.
+      JWT_SECRET: ci-test-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm test
+
+  frontend:
+    name: Frontend (lint, teste, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
