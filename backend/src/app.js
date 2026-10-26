@@ -4,6 +4,9 @@ import helmet from 'helmet';
 import { createAuthRouter } from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import visitRoutes from './routes/visits.js';
+import accommodationRoutes from './routes/accommodations.js';
+import transferRoutes from './routes/transfers.js';
+import notificationRoutes from './routes/notifications.js';
 import { requireAuth, readOnlyGuard } from './middleware/auth.js';
 
 // Construiește aplicația Express (fără s-o pornească).
@@ -37,6 +40,9 @@ export function createApp() {
   // Rutele de mai jos cer utilizator conectat; rolurile read-only pot doar citi.
   app.use('/api/users', requireAuth, readOnlyGuard, userRoutes);
   app.use('/api/visits', requireAuth, readOnlyGuard, visitRoutes);
+  app.use('/api/accommodations', requireAuth, readOnlyGuard, accommodationRoutes);
+  app.use('/api/transfers', requireAuth, readOnlyGuard, transferRoutes);
+  app.use('/api/notifications', requireAuth, readOnlyGuard, notificationRoutes);
 
   // Rută inexistentă
   app.use('/api', (req, res) => {
