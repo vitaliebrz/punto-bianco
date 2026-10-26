@@ -8,6 +8,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   1. [Structura proiectului și schema bazei de date](planuri/01-structura-si-schema.md)
   2. [Autentificare, roluri, seed și pagina de login](planuri/02-autentificare-roluri-seed.md)
   3. [Code review, reparații și teste automate](planuri/03-code-review-si-teste.md)
+  4. [Fluxul vizitei: înregistrare, notificări, ecrane pe roluri](planuri/04-fluxul-vizitei.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
