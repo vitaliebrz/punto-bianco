@@ -24,8 +24,10 @@ punto-bianco/
 │  │  ├─ schema.prisma        modelul de date
 │  │  ├─ migrations/          fișierele SQL generate din schemă (versionate în git)
 │  │  └─ seed.js              date demo inventate (npm run seed)
+│  ├─ tests/                  teste automate (Vitest + Supertest)
 │  ├─ src/
-│  │  ├─ index.js             serverul Express: securitate, CORS, rute, erori
+│  │  ├─ app.js               createApp(): aplicația Express — securitate, CORS, rute, erori
+│  │  ├─ index.js             pornește aplicația pe un port
 │  │  ├─ lib/prisma.js        clientul unic pentru baza de date
 │  │  ├─ middleware/          auth.js (token, roluri, doar-citire), validate.js (zod)
 │  │  ├─ schemas/             formele acceptate ale datelor (ex. login)
@@ -36,7 +38,9 @@ punto-bianco/
 │     ├─ api.js               singurul loc care vorbește cu backend-ul
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
 │     ├─ pages/               LoginPage, HomePage
+│     ├─ test/                teste automate (Vitest + Testing Library)
 │     └─ roles.js             denumirile rolurilor în română
+├─ .github/workflows/ci.yml   GitHub Actions: lint, teste, build la fiecare PR
 └─ docs/                      documentația (acest folder)
 ```
 

@@ -81,6 +81,39 @@ cd backend
 npx prisma studio           # interfață în browser pentru tabelele din baza de date
 ```
 
+## Teste automate
+
+```powershell
+cd backend
+npm test            # 106 teste: validare, roluri, API, integrare cu baza (Neon dev)
+
+cd frontend
+npm test            # 8 teste: fluxul de login / sesiune, cu serverul simulat
+```
+
+`npm run test:watch` rulează testele din nou la fiecare modificare de cod.
+
+| Unde | Fișier | Ce verifică | Bază de date |
+|---|---|---|---|
+| backend | `tests/validation.test.js` | modelul strict al datelor de login, limita bcrypt de 72 de bytes | nu |
+| backend | `tests/auth-middleware.test.js` | token (lipsă / fals / altă cheie / `alg: none` / expirat), roluri, regula doar-citire | nu |
+| backend | `tests/api.test.js` | cereri HTTP: erori, limita de încercări (inclusiv IP fals), CORS, header-e de securitate | nu |
+| backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
+| frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, sesiunea după refresh (token valid / expirat / server oprit) | nu |
+
+**Testele de integrare** (`db.test.js`):
+- au nevoie de `backend/.env` cu baza Neon `dev` și de datele din seed (`npm run seed`);
+- dacă `DATABASE_URL` sau `SEED_PASSWORD` lipsesc, sunt sărite automat.
+
+**GitHub Actions** ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) rulează la fiecare Pull Request și la fiecare push pe `main`:
+- backend: teste;
+- frontend: lint, teste, build.
+
+Testele cu baza de date sunt sărite acolo, pentru că secretele Neon nu se pun pe GitHub.
+
+**Notă npm:** dacă `npm install` dă eroarea `edgesOut` (bug în npm 10.8), folosește `npx npm@11 install <pachet>`. `npm ci`, folosit în CI, nu are această problemă.
+
 ## Mod de lucru cu git
-- Fiecare pas logic are ramura lui (`feature/...`), cu commit-uri mici, în stilul *conventional commits* (`feat:`, `fix:`, `chore:`, `docs:`).
-- Unirea în `main` se face prin Pull Request.
+- Fiecare pas logic are ramura lui (`feature/...`, `fix/...`, `test/...`), cu commit-uri mici, în stilul *conventional commits* (`feat:`, `fix:`, `refactor:`, `test:`, `ci:`, `chore:`, `docs:`).
+- **Înainte de o ramură nouă:** treci pe `main` și rulezi **Fetch origin** + **Pull origin**, ca ramura să pornească de la ultima versiune.
+- Unirea în `main` se face prin Pull Request, după ce bifa CI e verde.
