@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import { requireAuth, readOnlyGuard } from './middleware/auth.js';
 
 if (!process.env.JWT_SECRET) {
   console.error('Lipsește JWT_SECRET în .env');
@@ -23,6 +25,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+
+// Rutele de mai jos cer utilizator conectat; rolurile read-only pot doar citi.
+app.use('/api/users', requireAuth, readOnlyGuard, userRoutes);
 
 // Rută inexistentă
 app.use('/api', (req, res) => {
