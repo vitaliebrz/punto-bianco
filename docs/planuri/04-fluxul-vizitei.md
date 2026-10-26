@@ -290,6 +290,7 @@ FullCalendar nu se testează în jsdom; testăm funcțiile noastre.
 | `transfersRangeSchema` în `schemas/visit.js` | În `schemas/transfer.js` | ține de calendar, nu de formularul vizitei |
 | — | `lib/params.js` (`parseId`), `services/visits.js` (ce se încarcă și forma trimisă clientului) | cod refolosit de mai multe rute |
 | Mesajul pentru Manager cazări | Conține și „gratuită N zile” când e cazul | informația e utilă la căutarea apartamentului |
+| Clic pe notificare → pagina rolului | Clic pe notificare → **detaliile vizitei** din notificare | găsit la testarea manuală: Back office era deja pe pagina lui, deci clicul doar marca notificarea citită, fără nicio schimbare vizibilă |
 
 ### Limitări cunoscute
 - Listele de vizite și de cazări nu sunt împărțite pe pagini. Merge bine pentru volumul unei clinici; la mii de vizite s-ar adăuga paginare sau filtre.

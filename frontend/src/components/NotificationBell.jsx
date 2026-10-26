@@ -6,11 +6,13 @@ import { formatDateTime } from '../format'
 // Cât de des se verifică notificările noi
 const REFRESH_MS = 30_000
 
-// Unde duce un clic pe notificare
-const TARGET_BY_TYPE = {
+// Unde duce un clic pe notificare: detaliile vizitei; fără vizită, pagina rolului
+const PAGE_BY_TYPE = {
   VIZITA_NOUA_BACK_OFFICE: '/back-office',
   CAZARE_NOUA: '/cazari',
 }
+
+const targetOf = (item) => (item.visitId ? `/vizite/${item.visitId}` : (PAGE_BY_TYPE[item.type] ?? '/'))
 
 export default function NotificationBell() {
   const [data, setData] = useState({ unreadCount: 0, items: [] })
@@ -67,7 +69,7 @@ export default function NotificationBell() {
       }
     }
     load()
-    navigate(TARGET_BY_TYPE[item.type] ?? '/')
+    navigate(targetOf(item))
   }
 
   async function markAllRead() {

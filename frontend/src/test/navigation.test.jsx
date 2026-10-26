@@ -4,7 +4,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { menuFor } from '../navigation'
 import { transferEventTitle } from '../transferEvents'
-import { json, renderAs, USERS } from './helpers'
+import { json, renderAs, USERS, VISIT } from './helpers'
 
 const NOTIFICATIONS = {
   unreadCount: 1,
@@ -86,11 +86,11 @@ describe('clopoțelul de notificări', () => {
     expect(items[1]).not.toHaveClass('unread')
   })
 
-  it('clic pe o notificare necitită: o marchează citită și duce la pagina rolului', async () => {
+  it('clic pe o notificare necitită: o marchează citită și deschide vizita', async () => {
     let read = false
     const fetchMock = renderAs(USERS.cazari, '/cazari', {
       'GET /api/accommodations': json(200, []),
-      'GET /api/visits': json(200, []),
+      'GET /api/visits/42': json(200, VISIT),
       'GET /api/notifications': () =>
         json(200, {
           unreadCount: read ? 0 : 1,
@@ -107,8 +107,23 @@ describe('clopoțelul de notificări', () => {
     await user.click(screen.getByRole('button', { name: /Vizită nouă: Marco Rossi/ }))
 
     expect(await screen.findByRole('button', { name: 'Notificări (0 necitite)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Cazări' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Detalii vizită' })).toBeInTheDocument()
+    expect(await screen.findByText('Implant')).toBeInTheDocument()
     expect(fetchMock.mock.calls.some(([, o]) => o?.method === 'PATCH')).toBe(true)
+  })
+
+  it('Back office: clic pe notificare când ești deja pe pagina ta deschide tot vizita', async () => {
+    renderAs(USERS.backoffice, '/back-office', {
+      'GET /api/visits': json(200, [VISIT]),
+      'GET /api/visits/42': json(200, VISIT),
+      'GET /api/notifications': json(200, { ...NOTIFICATIONS, unreadCount: 0, items: [NOTIFICATIONS.items[1]] }),
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Notificări (0 necitite)' }))
+    await user.click(screen.getByRole('button', { name: /Sophie Martin/ }))
+
+    expect(await screen.findByRole('heading', { name: 'Detalii vizită' })).toBeInTheDocument()
   })
 
   it('„Marchează toate ca citite”', async () => {
