@@ -165,28 +165,38 @@ input {
   gap: 16px;
 }
 
-/* ---------- Pagina principală ---------- */
+/* ---------- Antet și meniu ---------- */
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 3px solid var(--mint);
+}
+
+.header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-bottom: 3px solid var(--mint);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 16px;
 }
 
 .app-header .brand {
   font-weight: 700;
   font-size: 1.1rem;
   color: var(--gray);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.app-header .user {
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -197,30 +207,167 @@ input {
   color: var(--text-muted);
 }
 
+.main-menu {
+  display: flex;
+  gap: 4px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px 8px;
+  overflow-x: auto;
+}
+
+.main-menu a {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  color: var(--gray);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main-menu a:hover {
+  background: var(--bg);
+}
+
+.main-menu a.active {
+  background: var(--mint-light);
+  color: var(--text);
+}
+
+.menu-toggle {
+  display: none;
+}
+
 .app-main {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 16px;
 }
 
-.welcome-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
+/* ---------- Notificări ---------- */
+
+.bell {
+  position: relative;
 }
 
-.role-badge {
-  align-self: flex-start;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--mint-light);
+.bell-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
   color: var(--gray);
-  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.bell-button:focus-visible,
+.bell-item:focus-visible,
+.link-button:focus-visible,
+.main-menu a:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.bell-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(86, 85, 85, 0.18);
+}
+
+.bell-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bell-empty {
+  padding: 16px 14px;
+  color: var(--text-muted);
+}
+
+.bell-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bell-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bell-item:hover {
+  background: var(--bg);
+}
+
+.bell-item.unread {
+  background: var(--mint-light);
+  color: var(--text);
   font-weight: 600;
+}
+
+.bell-item time {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.link-button {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--gray);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.app-header .user-role {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.2;
 }
 
 .readonly-note {
@@ -228,8 +375,368 @@ input {
   font-size: 0.9rem;
 }
 
+/* ---------- Calendar transferuri (FullCalendar) ---------- */
+
+.calendar {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: var(--mint-light);
+  --fc-button-bg-color: var(--surface);
+  --fc-button-border-color: var(--border);
+  --fc-button-text-color: var(--gray);
+  --fc-button-hover-bg-color: var(--bg);
+  --fc-button-hover-border-color: var(--gray);
+  --fc-button-active-bg-color: var(--mint);
+  --fc-button-active-border-color: var(--mint);
+  --fc-now-indicator-color: var(--error);
+}
+
+.calendar .fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar .fc .fc-toolbar-title {
+  font-size: 1.15rem;
+  color: var(--gray);
+}
+
+.calendar .fc .fc-button {
+  font-weight: 600;
+  text-transform: none;
+}
+
+.calendar .fc-event {
+  white-space: normal;
+}
+
+.calendar .fc-event-title {
+  white-space: normal;
+}
+
+/* Sosire = mentă, Plecare = gri (și în legendă) */
+.fc-event.transfer-sosire,
+.legend-item.transfer-sosire::before {
+  background: var(--mint);
+  border-color: #6fb9a5;
+  color: var(--text);
+}
+
+.fc-event.transfer-plecare,
+.legend-item.transfer-plecare::before {
+  background: var(--gray);
+  border-color: var(--gray);
+  color: #fff;
+}
+
+.fc-event.transfer-sosire .fc-event-main,
+.fc-event.transfer-sosire a {
+  color: var(--text);
+}
+
+.fc-event.transfer-plecare .fc-event-main,
+.fc-event.transfer-plecare a {
+  color: #fff;
+}
+
+/* În vederea „listă” evenimentul e un rând de tabel, nu un bloc colorat */
+.fc-list-event.transfer-sosire,
+.fc-list-event.transfer-plecare,
+.fc-list-event.transfer-sosire a,
+.fc-list-event.transfer-plecare a {
+  background: transparent;
+  color: var(--text);
+}
+
+.fc-list-event.transfer-sosire .fc-list-event-dot {
+  border-color: var(--mint);
+}
+
+.fc-list-event.transfer-plecare .fc-list-event-dot {
+  border-color: var(--gray);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.legend-item::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 1px solid;
+  border-radius: 3px;
+}
+
+/* ---------- Pagini, carduri, insigne ---------- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+  color: var(--gray);
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.alert-success {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--mint-light);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.card h2 {
+  font-size: 1.1rem;
+  color: var(--gray);
+}
+
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+
+.card-details dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.card-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.card-details.person + .card-details.person {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-todo {
+  background: #eceeed;
+  color: var(--gray);
+}
+
+.badge-progress {
+  background: #fff4d6;
+  color: #7a5a00;
+}
+
+.badge-done {
+  background: var(--mint-light);
+  color: #1f6b56;
+}
+
+/* ---------- Formular vizită ---------- */
+
+.visit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.form-section legend {
+  padding: 0 6px;
+  font-weight: 700;
+  color: var(--gray);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.field select,
+.field textarea {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field input[aria-invalid='true'],
+.field select[aria-invalid='true'],
+.field textarea[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.field select:focus-visible,
+.field textarea:focus-visible,
+.check input:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.field-error {
+  font-size: 0.85rem;
+  color: var(--error);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--gray);
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Telefon: meniul se strânge sub butonul „Meniu” */
+@media (max-width: 720px) {
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .main-menu {
+    display: none;
+    flex-direction: column;
+    padding-bottom: 12px;
+  }
+
+  .main-menu.open {
+    display: flex;
+  }
+
+  .main-menu a {
+    padding: 12px 14px;
+  }
+}
+
 @media (max-width: 480px) {
   .app-header .user-name {
     display: none;
+  }
+
+  .header-actions .btn {
+    padding: 0 12px;
   }
 }

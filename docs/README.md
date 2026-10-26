@@ -3,11 +3,12 @@
 Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei fiecărui pacient (tratament, transfer de la aeroport, cazare), cu acces pe roluri.
 
 ## Cuprins
-- [Arhitectura](arhitectura.md): tehnologii, structura repo-ului, modelul de date
+- [Arhitectura](arhitectura.md): tehnologii, structura repo-ului, fluxul vizitei, rutele API, modelul de date
 - Planuri de implementare (în ordinea în care au fost făcute):
   1. [Structura proiectului și schema bazei de date](planuri/01-structura-si-schema.md)
   2. [Autentificare, roluri, seed și pagina de login](planuri/02-autentificare-roluri-seed.md)
   3. [Code review, reparații și teste automate](planuri/03-code-review-si-teste.md)
+  4. [Fluxul vizitei: înregistrare, notificări, ecrane pe roluri](planuri/04-fluxul-vizitei.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
@@ -85,10 +86,10 @@ npx prisma studio           # interfață în browser pentru tabelele din baza d
 
 ```powershell
 cd backend
-npm test            # 106 teste: validare, roluri, API, integrare cu baza (Neon dev)
+npm test            # 213 teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
 
 cd frontend
-npm test            # 8 teste: fluxul de login / sesiune, cu serverul simulat
+npm test            # 39 de teste: login, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
@@ -98,11 +99,19 @@ npm test            # 8 teste: fluxul de login / sesiune, cu serverul simulat
 | backend | `tests/validation.test.js` | modelul strict al datelor de login, limita bcrypt de 72 de bytes | nu |
 | backend | `tests/auth-middleware.test.js` | token (lipsă / fals / altă cheie / `alg: none` / expirat), roluri, regula doar-citire | nu |
 | backend | `tests/api.test.js` | cereri HTTP: erori, limita de încercări (inclusiv IP fals), CORS, header-e de securitate | nu |
+| backend | `tests/visit-validation.test.js` | formularul vizitei (însoțitor, sejur, cazare, transfer, câmpuri în plus), statusuri, intervalul calendarului | nu |
+| backend | `tests/notifications.test.js` | cine primește notificare și textul ei, ora Chișinăului (vară / iarnă) | nu |
+| backend | `tests/transfer-events.test.js` | evenimentele de calendar: sosire, plecare, dus-întors, interval | nu |
 | backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
+| backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane | **da**, scrie și **șterge** la final |
 | frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, sesiunea după refresh (token valid / expirat / server oprit) | nu |
+| frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (bife, date trimise, erori lângă câmpuri), lista vizitelor | nu |
+| frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, conflict 409, doar-vizualizare | nu |
+| frontend | `src/test/navigation.test.jsx` | meniul și prima pagină pe roluri, clopoțelul, textul din calendar | nu |
 
-**Testele de integrare** (`db.test.js`):
+**Testele de integrare** (`db.test.js`, `db-flow.test.js`):
 - au nevoie de `backend/.env` cu baza Neon `dev` și de datele din seed (`npm run seed`);
+- `db-flow.test.js` creează vizite de test și le șterge la final; datele din seed rămân neatinse;
 - dacă `DATABASE_URL` sau `SEED_PASSWORD` lipsesc, sunt sărite automat.
 
 **GitHub Actions** ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) rulează la fiecare Pull Request și la fiecare push pe `main`:
@@ -111,7 +120,9 @@ npm test            # 8 teste: fluxul de login / sesiune, cu serverul simulat
 
 Testele cu baza de date sunt sărite acolo, pentru că secretele Neon nu se pun pe GitHub.
 
-**Notă npm:** dacă `npm install` dă eroarea `edgesOut` (bug în npm 10.8), folosește `npx npm@11 install <pachet>`. `npm ci`, folosit în CI, nu are această problemă.
+**Notă npm:**
+- Dacă `npm install` dă eroarea `edgesOut` (bug în npm 10.8), folosește `npx npm@11 install <pachet>`. `npm ci`, folosit în CI, nu are această problemă.
+- npm 10 șterge din `package-lock.json` rândurile `libc` (pachetele pentru Linux, unde rulează CI și Render). Dacă după un `npm install` apare `package-lock.json` modificat fără să fi adăugat pachete, aruncă modificarea (GitHub Desktop: clic dreapta → **Discard changes…**).
 
 ## Mod de lucru cu git
 - Fiecare pas logic are ramura lui (`feature/...`, `fix/...`, `test/...`), cu commit-uri mici, în stilul *conventional commits* (`feat:`, `fix:`, `refactor:`, `test:`, `ci:`, `chore:`, `docs:`).
