@@ -1,6 +1,6 @@
 # Plan 03 — Code review, reparații și teste automate
 
-**Ziua 1, pasul 3** · Ramuri: `feature/auth-and-seed` (reparații) → `test/automated-tests` (teste + CI) · Status: **în lucru**
+**Ziua 1, pasul 3** · Ramuri: `feature/auth-and-seed` (reparații) → `test/automated-tests` (teste + CI) · Status: **partea A finalizată, partea B în lucru**
 
 ## Scop
 Am făcut code review pe tot codul de pe `feature/auth-and-seed`, înainte de merge. Reparăm problemele găsite, apoi adăugăm teste automate permanente care rulează cu `npm test`. Testele rulează și pe GitHub, la fiecare Pull Request (GitHub Actions).
@@ -89,16 +89,17 @@ La fiecare Pull Request și la push pe `main`, rulează două joburi:
 3. `fix(auth): limit login password to 72 bytes for bcrypt`
 4. `fix(api): normalize FRONTEND_URL and add security headers with helmet`
 5. `fix(frontend): keep session when server is unreachable on reload`
-6. `docs: update plan 02 and setup guide`
+6. `chore(db): print target database host in seed`
+7. `docs: update plan 02 and setup guide`
 
 Apoi push, PR #2 și merge.
 
 **Pe `test/automated-tests`:**
-7. `refactor(backend): split app creation from server start`
-8. `test(backend): add unit, API and integration tests`
-9. `test(frontend): add auth flow tests`
-10. `ci: run lint, tests and build on pull requests`
-11. `docs: document how to run tests`
+8. `refactor(backend): split app creation from server start`
+9. `test(backend): add unit, API and integration tests`
+10. `test(frontend): add auth flow tests`
+11. `ci: run lint, tests and build on pull requests`
+12. `docs: document how to run tests`
 
 Apoi push, PR #3 (cu bifa CI) și merge.
 
@@ -109,4 +110,19 @@ Apoi push, PR #3 (cu bifa CI) și merge.
 - În PR #3 bifa GitHub Actions e verde.
 
 ## Ce s-a implementat / abateri de la plan
+
+### Partea A (finalizată)
+| # | Rezultat |
+|---|---|
+| 1 | `TRUST_PROXY` opțional. Testul cu 20 de IP-uri false: **0 blocate înainte, 10 blocate după**. |
+| 2 | Ramura Neon `dev` creată, iar `.env` local arată spre ea. Seed-ul afișează host-ul bazei pe care scrie. |
+| 3 | Limita parolei e în bytes: 36 × „ă” + „X” (73 de bytes) e respinsă; parolele normale cu diacritice trec. |
+| 4 | La refresh cu serverul oprit apare mesajul cu „Reîncearcă”, iar token-ul rămâne. Token-ul se șterge doar la 401. |
+| 5 | `FRONTEND_URL` cu `/` la final funcționează (testat cu `https://punto.example/`). |
+| 6 | helmet adaugă `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` și `Content-Security-Policy`, și elimină `X-Powered-By`. |
+| 7 | Planul 02 completat; `docs/README.md` actualizat (seed, conturi demo, `frontend/.env`, Neon `dev`). |
+
+**Abatere:** afișarea host-ului în seed (din reparația #2) are un commit separat: `chore(db): print target database host in seed`.
+
+### Partea B
 _Se completează la final._

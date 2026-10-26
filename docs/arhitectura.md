@@ -22,12 +22,44 @@ punto-bianco/
 ├─ backend/
 │  ├─ prisma/
 │  │  ├─ schema.prisma        modelul de date
-│  │  └─ migrations/          fișierele SQL generate din schemă (versionate în git)
-│  ├─ src/index.js            serverul Express
+│  │  ├─ migrations/          fișierele SQL generate din schemă (versionate în git)
+│  │  └─ seed.js              date demo inventate (npm run seed)
+│  ├─ src/
+│  │  ├─ index.js             serverul Express: securitate, CORS, rute, erori
+│  │  ├─ lib/prisma.js        clientul unic pentru baza de date
+│  │  ├─ middleware/          auth.js (token, roluri, doar-citire), validate.js (zod)
+│  │  ├─ schemas/             formele acceptate ale datelor (ex. login)
+│  │  └─ routes/              auth.js (login, /me), users.js (coordonatori)
 │  └─ .env.example            model pentru variabilele de mediu
-├─ frontend/                  aplicația React (Vite)
+├─ frontend/
+│  └─ src/
+│     ├─ api.js               singurul loc care vorbește cu backend-ul
+│     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
+│     ├─ pages/               LoginPage, HomePage
+│     └─ roles.js             denumirile rolurilor în română
 └─ docs/                      documentația (acest folder)
 ```
+
+## Securitate și autentificare
+
+**Fluxul de login:**
+1. `POST /api/auth/login` primește **exact** `{ email, password }`, ambele text. Validarea se face cu zod, în mod strict: orice câmp în plus sau tip greșit → 400.
+2. Parola e verificată cu bcrypt. Pentru un email inexistent, o parolă greșită sau un cont inactiv, răspunsul e același („Email sau parolă greșite”), cu același timp de răspuns.
+3. Serverul trimite înapoi un token JWT (HS256, valabil 8 ore). Frontend-ul îl trimite la fiecare cerere în `Authorization: Bearer`.
+
+**Fiecare cerere protejată trece prin:**
+- `requireAuth`: verifică token-ul și încarcă userul **din bază**, ca un cont dezactivat să-și piardă accesul imediat;
+- `readOnlyGuard`: Contabil și Control calitate pot face doar GET;
+- `requireRole(...)`: pe rutele care cer un anumit rol; Admin are acces peste tot.
+
+**Alte protecții:**
+- **Limita de încercări:** 10 login-uri eșuate / 15 minute / IP → 429. IP-ul din `X-Forwarded-For` e luat în considerare doar cu `TRUST_PROXY`.
+- **CORS:** API-ul poate fi chemat din browser doar de pe `FRONTEND_URL`.
+- **helmet:** header-ele HTTP de securitate standard.
+- **Corp JSON de maxim 10 KB.**
+- **Erorile interne** nu trimit detalii tehnice clientului.
+
+Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e întotdeauna în backend.
 
 ## Roluri
 

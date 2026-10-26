@@ -1,6 +1,6 @@
 # Plan 02 — Autentificare, roluri, seed și pagina de login
 
-**Ziua 1, pasul 2** · Ramură: `feature/auth-and-seed` · Status: **în lucru**
+**Ziua 1, pasul 2** · Ramură: `feature/auth-and-seed` · Status: **finalizat**
 
 ## Scop
 Membrii echipei se pot conecta, iar fiecare are acces doar la ce ține de rolul lui. Contabil și Control calitate au acces doar la citire. Baza se umple cu date inventate (seed), iar o pagină simplă de login arată legătura frontend → backend → Neon.
@@ -112,7 +112,7 @@ z.object({
 - **`src/api.js`**, funcția `apiFetch`:
   - adaugă adresa API-ului și token-ul la fiecare cerere;
   - la 401 șterge token-ul.
-- **`src/auth/AuthContext.jsx`**:
+- **`src/auth/AuthContext.jsx`** (implementat ca 3 fișiere, vezi abaterile):
   - ține minte userul conectat;
   - `login` și `logout`;
   - la refresh păstrează sesiunea prin `/api/auth/me`.
@@ -164,4 +164,16 @@ z.object({
    - `npm run build` trece.
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+Tot planul a fost implementat în 8 commit-uri. Verificat: 10 teste pentru middleware, 13 pentru validare, 11 teste HTTP și 17 cu login real pentru toate rolurile. Utilizatorul a testat manual în browser login-ul, refresh-ul, ieșirea și rolurile read-only.
+
+**Abateri:**
+- **Utilizatori:** sunt **9**, nu 10. Textul planului spunea 10, dar tabelul avea 9 conturi; s-au creat cele din tabel.
+- **Rulare seed:** se face direct, cu `node prisma/seed.js` (`npm run seed`), nu prin `"prisma": { "seed" }` din `package.json`. Configurarea aceea e marcată ca depășită în Prisma 6 și dispare în Prisma 7.
+- **Contextul de autentificare** e împărțit în 3 fișiere, nu unul (`AuthContext.jsx`):
+  - [`AuthContext.js`](../../frontend/src/auth/AuthContext.js): contextul;
+  - [`AuthProvider.jsx`](../../frontend/src/auth/AuthProvider.jsx): componenta care ține sesiunea;
+  - [`useAuth.js`](../../frontend/src/auth/useAuth.js): hook-ul folosit de pagini.
+
+  Lint-ul (oxlint) cere ca un fișier cu componente să nu exporte și alte funcții, altfel nu merge reîncărcarea rapidă (fast refresh).
+- **Template Vite:** `favicon.svg` a rămas cel din template până la logo-ul de la Ziua 3. Restul fișierelor din template au fost șterse.
+- **Code review:** după implementare, review-ul a găsit câteva probleme (limita de încercări ocolibilă, limita bcrypt în bytes, sesiunea pierdută când serverul nu răspunde și altele). Au fost reparate pe aceeași ramură, înainte de merge. Detaliile sunt în [planul 03](03-code-review-si-teste.md).
