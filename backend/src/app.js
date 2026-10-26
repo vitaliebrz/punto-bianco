@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createAuthRouter } from './routes/auth.js';
 import userRoutes from './routes/users.js';
+import visitRoutes from './routes/visits.js';
 import { requireAuth, readOnlyGuard } from './middleware/auth.js';
 
 // Construiește aplicația Express (fără s-o pornească).
@@ -35,6 +36,7 @@ export function createApp() {
 
   // Rutele de mai jos cer utilizator conectat; rolurile read-only pot doar citi.
   app.use('/api/users', requireAuth, readOnlyGuard, userRoutes);
+  app.use('/api/visits', requireAuth, readOnlyGuard, visitRoutes);
 
   // Rută inexistentă
   app.use('/api', (req, res) => {
