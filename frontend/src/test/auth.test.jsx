@@ -1,35 +1,13 @@
 // Fluxul de autentificare, cu backend-ul simulat (fetch fals) — fără server real.
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import AuthProvider from '../auth/AuthProvider'
+import { json, mockFetch, renderAs, USERS } from './helpers'
 
 const TOKEN_KEY = 'pb_token'
-
-const USERS = {
-  admin: { id: 1, email: 'admin@puntobianco.demo', fullName: 'Elena Popescu', role: 'ADMIN' },
-  contabil: { id: 8, email: 'contabil@puntobianco.demo', fullName: 'Natalia Ceban', role: 'CONTABIL' },
-}
-
-const json = (status, body) => ({
-  ok: status >= 200 && status < 300,
-  status,
-  json: async () => body,
-})
-
-// Înlocuiește fetch cu o funcție care răspunde după adresă: routes = { '/api/auth/me': fn | răspuns }
-function mockFetch(routes) {
-  const fetchMock = vi.fn(async (url, options = {}) => {
-    const path = new URL(url).pathname
-    const handler = routes[path]
-    if (!handler) throw new Error(`Cerere neașteptată: ${path}`)
-    return typeof handler === 'function' ? handler(options) : handler
-  })
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
-}
 
 function renderApp(path = '/') {
   return render(
@@ -49,15 +27,20 @@ async function fillLogin(email, password) {
   return user
 }
 
+const emptyLists = {
+  'GET /api/visits': json(200, []),
+  'GET /api/notifications': json(200, { unreadCount: 0, items: [] }),
+}
+
 describe('autentificare', () => {
   it('neconectat: orice pagină trimite la login', async () => {
     mockFetch({})
-    renderApp('/')
+    renderApp('/vizite')
     expect(await screen.findByText('Conectează-te la contul tău')).toBeInTheDocument()
   })
 
   it('parolă greșită: afișează mesajul serverului, fără să salveze token', async () => {
-    mockFetch({ '/api/auth/login': json(401, { error: 'Email sau parolă greșite' }) })
+    mockFetch({ 'POST /api/auth/login': json(401, { error: 'Email sau parolă greșite' }) })
     renderApp('/login')
 
     await fillLogin('admin@puntobianco.demo', 'gresit')
@@ -66,17 +49,19 @@ describe('autentificare', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBeNull()
   })
 
-  it('login reușit: trimite exact { email, password } și arată numele + rolul', async () => {
+  it('login reușit: trimite exact { email, password }, arată numele + rolul și prima pagină a rolului', async () => {
     const fetchMock = mockFetch({
-      '/api/auth/login': json(200, { token: 'token-admin', user: USERS.admin }),
+      'POST /api/auth/login': json(200, { token: 'token-admin', user: USERS.admin }),
+      ...emptyLists,
     })
     renderApp('/login')
 
     await fillLogin('admin@puntobianco.demo', 'Demo1234!')
 
-    expect(await screen.findByText('Bun venit, Elena Popescu!')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+    expect(screen.getByText('Elena Popescu')).toBeInTheDocument()
     expect(screen.getByText('Admin')).toBeInTheDocument()
-    expect(screen.queryByText(/doar la vizualizare/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Doar vizualizare.')).not.toBeInTheDocument()
     expect(localStorage.getItem(TOKEN_KEY)).toBe('token-admin')
 
     const [, options] = fetchMock.mock.calls[0]
@@ -84,20 +69,18 @@ describe('autentificare', () => {
     expect(JSON.parse(options.body)).toEqual({ email: 'admin@puntobianco.demo', password: 'Demo1234!' })
   })
 
-  it('rol doar-citire: apare mențiunea „acces doar la vizualizare”', async () => {
-    mockFetch({ '/api/auth/login': json(200, { token: 't', user: USERS.contabil }) })
+  it('rol doar-citire: apare mențiunea „Doar vizualizare.”', async () => {
+    mockFetch({ 'POST /api/auth/login': json(200, { token: 't', user: USERS.contabil }), ...emptyLists })
     renderApp('/login')
 
     await fillLogin('contabil@puntobianco.demo', 'Demo1234!')
 
     expect(await screen.findByText('Contabil')).toBeInTheDocument()
-    expect(screen.getByText('Rolul tău are acces doar la vizualizare.')).toBeInTheDocument()
+    expect(await screen.findByText('Doar vizualizare.')).toBeInTheDocument()
   })
 
   it('Ieșire: șterge token-ul și revine la login', async () => {
-    localStorage.setItem(TOKEN_KEY, 'token-admin')
-    mockFetch({ '/api/auth/me': json(200, { user: USERS.admin }) })
-    renderApp('/')
+    renderAs(USERS.admin, '/', emptyLists)
 
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Ieșire' }))
 
@@ -108,18 +91,16 @@ describe('autentificare', () => {
 
 describe('sesiunea după refresh', () => {
   it('token valid: rămâi conectat; token-ul e trimis în header-ul Authorization', async () => {
-    localStorage.setItem(TOKEN_KEY, 'token-admin')
-    const fetchMock = mockFetch({ '/api/auth/me': json(200, { user: USERS.admin }) })
-    renderApp('/')
+    const fetchMock = renderAs(USERS.admin, '/', emptyLists)
 
-    expect(await screen.findByText('Bun venit, Elena Popescu!')).toBeInTheDocument()
+    expect(await screen.findByText('Elena Popescu')).toBeInTheDocument()
     const [, options] = fetchMock.mock.calls[0]
-    expect(options.headers.Authorization).toBe('Bearer token-admin')
+    expect(options.headers.Authorization).toBe('Bearer token')
   })
 
   it('token expirat (401): token șters, trimis la login', async () => {
     localStorage.setItem(TOKEN_KEY, 'token-expirat')
-    mockFetch({ '/api/auth/me': json(401, { error: 'Sesiune invalidă sau expirată' }) })
+    mockFetch({ 'GET /api/auth/me': json(401, { error: 'Sesiune invalidă sau expirată' }) })
     renderApp('/')
 
     expect(await screen.findByText('Conectează-te la contul tău')).toBeInTheDocument()
@@ -130,10 +111,11 @@ describe('sesiunea după refresh', () => {
     localStorage.setItem(TOKEN_KEY, 'token-admin')
     let serverUp = false
     mockFetch({
-      '/api/auth/me': () => {
+      'GET /api/auth/me': () => {
         if (!serverUp) throw new TypeError('Failed to fetch')
         return json(200, { user: USERS.admin })
       },
+      ...emptyLists,
     })
     renderApp('/')
 
@@ -143,6 +125,6 @@ describe('sesiunea după refresh', () => {
     serverUp = true
     await userEvent.setup().click(screen.getByRole('button', { name: 'Reîncearcă' }))
 
-    expect(await screen.findByText('Bun venit, Elena Popescu!')).toBeInTheDocument()
+    expect(await screen.findByText('Elena Popescu')).toBeInTheDocument()
   })
 })

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { menuFor, NOTIFIED_ROLES } from '../navigation'
+import { ROLE_LABELS } from '../roles'
 import NotificationBell from './NotificationBell'
 
 // Antetul comun al paginilor pentru utilizatori conectați: meniul rolului, clopoțelul, ieșirea.
@@ -20,7 +21,10 @@ export default function AppLayout() {
 
           <div className="header-actions">
             {NOTIFIED_ROLES.includes(user.role) && <NotificationBell />}
-            <span className="user-name">{user.fullName}</span>
+            <span className="user-name">
+              {user.fullName}
+              <span className="user-role">{ROLE_LABELS[user.role] ?? user.role}</span>
+            </span>
             <button type="button" className="btn btn-secondary" onClick={logout}>
               Ieșire
             </button>

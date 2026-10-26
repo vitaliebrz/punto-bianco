@@ -114,8 +114,9 @@ describe('Cazări', () => {
     expect(screen.queryByRole('button', { name: 'Marchează rezervat' })).not.toBeInTheDocument()
   })
 
-  it('șoferul nu are acces la pagina de cazări', async () => {
-    renderAs(USERS.sofer, '/cazari')
-    expect(await screen.findByText('Bun venit, Andrei Cojocaru!')).toBeInTheDocument()
+  it('șoferul nu are acces la pagina de cazări (trimis la calendar)', async () => {
+    renderAs(USERS.sofer, '/cazari', { 'GET /api/transfers': json(200, []) })
+    expect(await screen.findByRole('heading', { name: 'Calendar transferuri' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cazări' })).not.toBeInTheDocument()
   })
 })

@@ -364,31 +364,120 @@ input {
   cursor: pointer;
 }
 
-/* ---------- Pagina de bun venit ---------- */
-
-.welcome-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 24px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface);
-}
-
-.role-badge {
-  align-self: flex-start;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--mint-light);
-  color: var(--gray);
-  font-size: 0.9rem;
-  font-weight: 600;
+.app-header .user-role {
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.2;
 }
 
 .readonly-note {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+/* ---------- Calendar transferuri (FullCalendar) ---------- */
+
+.calendar {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: var(--mint-light);
+  --fc-button-bg-color: var(--surface);
+  --fc-button-border-color: var(--border);
+  --fc-button-text-color: var(--gray);
+  --fc-button-hover-bg-color: var(--bg);
+  --fc-button-hover-border-color: var(--gray);
+  --fc-button-active-bg-color: var(--mint);
+  --fc-button-active-border-color: var(--mint);
+  --fc-now-indicator-color: var(--error);
+}
+
+.calendar .fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar .fc .fc-toolbar-title {
+  font-size: 1.15rem;
+  color: var(--gray);
+}
+
+.calendar .fc .fc-button {
+  font-weight: 600;
+  text-transform: none;
+}
+
+.calendar .fc-event {
+  white-space: normal;
+}
+
+.calendar .fc-event-title {
+  white-space: normal;
+}
+
+/* Sosire = mentă, Plecare = gri (și în legendă) */
+.fc-event.transfer-sosire,
+.legend-item.transfer-sosire::before {
+  background: var(--mint);
+  border-color: #6fb9a5;
+  color: var(--text);
+}
+
+.fc-event.transfer-plecare,
+.legend-item.transfer-plecare::before {
+  background: var(--gray);
+  border-color: var(--gray);
+  color: #fff;
+}
+
+.fc-event.transfer-sosire .fc-event-main,
+.fc-event.transfer-sosire a {
+  color: var(--text);
+}
+
+.fc-event.transfer-plecare .fc-event-main,
+.fc-event.transfer-plecare a {
+  color: #fff;
+}
+
+/* În vederea „listă” evenimentul e un rând de tabel, nu un bloc colorat */
+.fc-list-event.transfer-sosire,
+.fc-list-event.transfer-plecare,
+.fc-list-event.transfer-sosire a,
+.fc-list-event.transfer-plecare a {
+  background: transparent;
+  color: var(--text);
+}
+
+.fc-list-event.transfer-sosire .fc-list-event-dot {
+  border-color: var(--mint);
+}
+
+.fc-list-event.transfer-plecare .fc-list-event-dot {
+  border-color: var(--gray);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.legend-item::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 1px solid;
+  border-radius: 3px;
 }
 
 /* ---------- Pagini, carduri, insigne ---------- */

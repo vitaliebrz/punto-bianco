@@ -145,8 +145,9 @@ describe('lista vizitelor', () => {
     expect(screen.queryByText('Vizită nouă')).not.toBeInTheDocument()
   })
 
-  it('contabil nu poate deschide formularul (trimis la pagina principală)', async () => {
-    renderAs(CONTABIL, '/vizite/noua', {})
-    expect(await screen.findByText('Bun venit, Natalia Ceban!')).toBeInTheDocument()
+  it('contabil nu poate deschide formularul (trimis la prima lui pagină)', async () => {
+    renderAs(CONTABIL, '/vizite/noua', { 'GET /api/visits': json(200, []) })
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+    expect(screen.queryByText('Coordonator responsabil')).not.toBeInTheDocument()
   })
 })
