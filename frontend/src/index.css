@@ -165,28 +165,38 @@ input {
   gap: 16px;
 }
 
-/* ---------- Pagina principală ---------- */
+/* ---------- Antet și meniu ---------- */
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 3px solid var(--mint);
+}
+
+.header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-bottom: 3px solid var(--mint);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 16px;
 }
 
 .app-header .brand {
   font-weight: 700;
   font-size: 1.1rem;
   color: var(--gray);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.app-header .user {
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -197,11 +207,164 @@ input {
   color: var(--text-muted);
 }
 
+.main-menu {
+  display: flex;
+  gap: 4px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px 8px;
+  overflow-x: auto;
+}
+
+.main-menu a {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  color: var(--gray);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.main-menu a:hover {
+  background: var(--bg);
+}
+
+.main-menu a.active {
+  background: var(--mint-light);
+  color: var(--text);
+}
+
+.menu-toggle {
+  display: none;
+}
+
 .app-main {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 16px;
 }
+
+/* ---------- Notificări ---------- */
+
+.bell {
+  position: relative;
+}
+
+.bell-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.bell-button:focus-visible,
+.bell-item:focus-visible,
+.link-button:focus-visible,
+.main-menu a:focus-visible {
+  outline: 3px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.bell-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(86, 85, 85, 0.18);
+}
+
+.bell-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bell-empty {
+  padding: 16px 14px;
+  color: var(--text-muted);
+}
+
+.bell-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bell-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bell-item:hover {
+  background: var(--bg);
+}
+
+.bell-item.unread {
+  background: var(--mint-light);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.bell-item time {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.link-button {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--gray);
+  font: inherit;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Pagina de bun venit ---------- */
 
 .welcome-card {
   display: flex;
@@ -228,8 +391,33 @@ input {
   font-size: 0.9rem;
 }
 
+/* Telefon: meniul se strânge sub butonul „Meniu” */
+@media (max-width: 720px) {
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .main-menu {
+    display: none;
+    flex-direction: column;
+    padding-bottom: 12px;
+  }
+
+  .main-menu.open {
+    display: flex;
+  }
+
+  .main-menu a {
+    padding: 12px 14px;
+  }
+}
+
 @media (max-width: 480px) {
   .app-header .user-name {
     display: none;
+  }
+
+  .header-actions .btn {
+    padding: 0 12px;
   }
 }
