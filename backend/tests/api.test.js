@@ -71,8 +71,27 @@ describe('POST /api/auth/login — date de intrare', () => {
 });
 
 describe('rute protejate fără token', () => {
-  it.each(['/api/auth/me', '/api/users/coordinators'])('GET %s -> 401', async (path) => {
+  it.each([
+    '/api/auth/me',
+    '/api/users/coordinators',
+    '/api/visits',
+    '/api/visits/1',
+    '/api/accommodations',
+    '/api/transfers',
+    '/api/notifications',
+  ])('GET %s -> 401', async (path) => {
     const res = await request(app).get(path);
+    expect(res.status).toBe(401);
+  });
+
+  it.each([
+    ['post', '/api/visits'],
+    ['patch', '/api/visits/1/back-office-status'],
+    ['patch', '/api/accommodations/1/status'],
+    ['patch', '/api/notifications/1/read'],
+    ['post', '/api/notifications/read-all'],
+  ])('%s %s -> 401', async (method, path) => {
+    const res = await request(app)[method](path).send({});
     expect(res.status).toBe(401);
   });
 });

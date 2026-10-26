@@ -4,6 +4,7 @@ import {
   backOfficeStatusSchema,
   createVisitSchema,
 } from '../src/schemas/visit.js';
+import { transfersRangeSchema } from '../src/schemas/transfer.js';
 
 const valid = {
   patient: {
@@ -195,6 +196,26 @@ describe('createVisitSchema', () => {
     ['null', null],
   ])('respinge: %s', (_name, body) => {
     expect(createVisitSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('transfersRangeSchema (intervalul calendarului)', () => {
+  const from = '2026-11-02T00:00:00.000Z';
+
+  it('acceptă o săptămână și transformă în Date', () => {
+    const result = transfersRangeSchema.parse({ from, to: '2026-11-09T00:00:00.000Z' });
+    expect(result.from).toBeInstanceOf(Date);
+  });
+
+  it.each([
+    ['fără interval', {}],
+    ['sfârșit înainte de început', { from, to: '2026-11-01T00:00:00.000Z' }],
+    ['peste 62 de zile', { from, to: '2027-01-04T00:00:00.000Z' }],
+    ['dată invalidă', { from: 'ieri', to: '2026-11-09T00:00:00.000Z' }],
+    ['parametru repetat (listă)', { from: [from, from], to: '2026-11-09T00:00:00.000Z' }],
+    ['parametru în plus', { from, to: '2026-11-09T00:00:00.000Z', userId: '1' }],
+  ])('respinge: %s', (_name, query) => {
+    expect(transfersRangeSchema.safeParse(query).success).toBe(false);
   });
 });
 
