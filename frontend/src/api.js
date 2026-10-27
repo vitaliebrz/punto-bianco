@@ -58,7 +58,10 @@ export async function apiFetch(path, { method = 'GET', body } = {}) {
   const data = await res.json().catch(() => null)
 
   if (!res.ok) {
-    if (res.status === 401 && token) {
+    // Deconectăm doar dacă cererea a plecat cu tokenul CURENT. Un 401 întârziat pentru un token vechi
+    // (ex. sesiunea a expirat, utilizatorul s-a reconectat între timp, sau s-a logat în alt tab)
+    // nu trebuie să șteargă sesiunea nouă.
+    if (res.status === 401 && token && tokenStorage.get() === token) {
       tokenStorage.clear()
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
     }
