@@ -32,7 +32,7 @@ const NEXT_ACTION = {
 export default function BackOfficePage() {
   const { user } = useAuth()
   const readOnly = isReadOnly(user.role)
-  const { data: visits, error, loading, reload, setData } = useApiData('/api/visits')
+  const { data: visits, error, loading, retryable, reload, setData } = useApiData('/api/visits')
   // Vizitele care se salvează acum: fiecare card își blochează butonul separat, așa că
   // un clic pe alt card nu deblochează butonul primului (care s-ar putea trimite de două ori).
   const [busyIds, setBusyIds] = useState(() => new Set())
@@ -78,7 +78,7 @@ export default function BackOfficePage() {
 
       {actionError && <ErrorState message={actionError} />}
 
-      <PageState loading={loading} error={error} onRetry={reload} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} />
 
       {visits && visits.length === 0 && (
         <EmptyState

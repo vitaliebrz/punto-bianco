@@ -107,7 +107,8 @@ export default function NewVisitPage() {
 
     try {
       const visit = await apiFetch('/api/visits', { method: 'POST', body: buildVisitPayload(form) })
-      navigate(`/vizite/${visit.id}`, { state: { created: true } })
+      // replace: formularul trimis nu rămâne în istoric; „Înapoi” din detalii duce la pagina dinaintea lui
+      navigate(`/vizite/${visit.id}`, { replace: true, state: { created: true } })
     } catch (err) {
       const fieldErrors = errorsByField(err.details)
       setErrors(fieldErrors)

@@ -26,7 +26,7 @@ import { useApiData } from '../useApiData'
 export default function AccommodationsPage() {
   const { user } = useAuth()
   const readOnly = isReadOnly(user.role)
-  const { data: requests, error, loading, reload, setData } = useApiData('/api/accommodations')
+  const { data: requests, error, loading, retryable, reload, setData } = useApiData('/api/accommodations')
   // Cererile care se salvează acum (fiecare card își blochează butonul separat, ca la Back office)
   const [busyIds, setBusyIds] = useState(() => new Set())
   const [actionError, setActionError] = useState('')
@@ -70,7 +70,7 @@ export default function AccommodationsPage() {
 
       {actionError && <ErrorState message={actionError} />}
 
-      <PageState loading={loading} error={error} onRetry={reload} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} />
 
       {requests && requests.length === 0 && (
         <EmptyState

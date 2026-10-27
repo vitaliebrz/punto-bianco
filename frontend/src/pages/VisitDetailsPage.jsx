@@ -46,7 +46,7 @@ export default function VisitDetailsPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: visit, error, loading, reload } = useApiData(`/api/visits/${id}`)
+  const { data: visit, error, loading, retryable, reload } = useApiData(`/api/visits/${id}`)
 
   // Mesajul de după înregistrare (vine din formular, prin starea din istoricul browserului).
   // Ținem minte pentru ce vizită l-am primit, apoi ștergem marcajul din istoric:
@@ -60,7 +60,14 @@ export default function VisitDetailsPage() {
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <Button variant="ghost" size="sm" icon={ArrowLeft} className="-ml-2" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={ArrowLeft}
+          className="-ml-2"
+          // Deschisă direct (link primit, tab nou) nu are pagină anterioară: mergem la prima pagină a rolului
+          onClick={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
+        >
           Înapoi
         </Button>
       </div>
@@ -77,7 +84,7 @@ export default function VisitDetailsPage() {
         </p>
       )}
 
-      <PageState loading={loading} error={error} onRetry={reload} skeleton={detailsSkeleton} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} skeleton={detailsSkeleton} />
 
       {visit && (
         <div className="grid items-start gap-5 lg:grid-cols-3">
@@ -104,10 +111,10 @@ export default function VisitDetailsPage() {
                     {'treatment' in person && (
                       <dl className="grid gap-4 sm:grid-cols-2">
                         <Detail label="Tratament">
-                          {person.treatment ?? <span className="text-ink-400">Fără tratament</span>}
+                          {person.treatment ?? <span className="text-ink-500">Fără tratament</span>}
                         </Detail>
                         <Detail label="Disponibilitate">
-                          {person.availability ?? <span className="text-ink-400">Necompletat</span>}
+                          {person.availability ?? <span className="text-ink-500">Necompletat</span>}
                         </Detail>
                       </dl>
                     )}

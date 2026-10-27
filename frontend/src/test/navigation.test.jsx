@@ -1,6 +1,6 @@
 // Meniul și prima pagină pentru fiecare rol, clopoțelul de notificări, textul din calendar.
 import { describe, expect, it, vi } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { menuFor } from '../navigation'
 import { transferEventTitle } from '../transferEvents'
@@ -59,6 +59,57 @@ describe('meniul pe roluri', () => {
     expect(within(menu).getAllByRole('link').map((link) => link.textContent)).toEqual(
       menuLabels(user.role),
     )
+  })
+})
+
+describe('meniul de pe telefon', () => {
+  const openMenu = async (user) => {
+    const button = await screen.findByRole('button', { name: 'Deschide meniul' })
+    await user.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    return button
+  }
+
+  it('deschis: focusul intră în meniu, iar pagina din spate e inactivă (inert)', async () => {
+    renderAs(USERS.coordonator, '/vizite', { 'GET /api/visits': json(200, []) })
+    const user = userEvent.setup()
+
+    await openMenu(user)
+
+    expect(screen.getByRole('button', { name: 'Închide meniul' })).toHaveFocus()
+    expect(screen.getByRole('main').parentElement).toHaveAttribute('inert')
+  })
+
+  it('Escape: se închide, iar focusul revine pe butonul de meniu', async () => {
+    renderAs(USERS.coordonator, '/vizite', { 'GET /api/visits': json(200, []) })
+    const user = userEvent.setup()
+
+    const button = await openMenu(user)
+    await user.keyboard('{Escape}')
+
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveFocus()
+    expect(screen.getByRole('main').parentElement).not.toHaveAttribute('inert')
+  })
+
+  it('se închide la orice schimbare de pagină: clic în meniu sau pe logo', async () => {
+    renderAs(USERS.coordonator, '/vizite', {
+      'GET /api/visits': json(200, []),
+      'GET /api/users/coordinators': json(200, []),
+    })
+    const user = userEvent.setup()
+    const sidebar = () => document.getElementById('main-sidebar')
+
+    const button = await openMenu(user)
+    await user.click(within(sidebar()).getByRole('link', { name: 'Vizită nouă' }))
+    expect(await screen.findByRole('heading', { name: 'Vizită nouă' })).toBeInTheDocument()
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+
+    // logo-ul duce la „/”, care trimite înapoi la prima pagină a rolului
+    await openMenu(user)
+    await user.click(within(sidebar()).getAllByRole('link')[0])
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+    expect(button).toHaveAttribute('aria-expanded', 'false')
   })
 })
 
@@ -161,6 +212,33 @@ describe('clopoțelul de notificări', () => {
     await user.click(screen.getByRole('button', { name: 'Marchează toate ca citite' }))
 
     expect(await screen.findByRole('button', { name: 'Notificări (0 necitite)' })).toBeInTheDocument()
+  })
+
+  it('o verificare veche care răspunde târziu nu readuce numărul vechi de necitite', async () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    let calls = 0
+    let answerSlowCheck
+    renderAs(USERS.backoffice, '/back-office', {
+      'GET /api/visits': json(200, []),
+      'GET /api/notifications': () => {
+        calls += 1
+        if (calls === 1) return json(200, NOTIFICATIONS) // la pornire: 1 necitită
+        if (calls === 2) return new Promise((resolve) => (answerSlowCheck = resolve)) // verificarea lentă
+        return json(200, { unreadCount: 0, items: [] }) // după „Marchează toate ca citite”
+      },
+      'POST /api/notifications/read-all': json(200, { updated: 1 }),
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Notificări (1 necitite)' }))
+    // revenirea în tab pornește o verificare care întârzie
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
+    await user.click(screen.getByRole('button', { name: 'Marchează toate ca citite' }))
+    expect(await screen.findByRole('button', { name: 'Notificări (0 necitite)' })).toBeInTheDocument()
+
+    // răspunsul vechi (încă 1 necitită) ajunge abia acum: e ignorat
+    await act(async () => answerSlowCheck(json(200, NOTIFICATIONS)))
+    expect(screen.getByRole('button', { name: 'Notificări (0 necitite)' })).toBeInTheDocument()
   })
 })
 

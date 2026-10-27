@@ -29,7 +29,7 @@ function Cell({ label, children }) {
 }
 
 // „Nu e nevoie” scris discret, ca să iasă în evidență doar ce e nevoie
-const notNeeded = <span className="text-ink-400">Nu e nevoie</span>
+const notNeeded = <span className="text-ink-500">Nu e nevoie</span>
 
 // Iconiță + text. Textul rămâne în lățimea coloanei și trece pe rândul următor dacă nu încape
 // (ex. „2 dormitoare + living”), în loc să se suprapună peste coloana vecină.
@@ -45,7 +45,7 @@ function WithIcon({ icon: Icon, children }) {
 // Toate vizitele, ordonate după data sosirii (ordinea vine de la server)
 export default function VisitsPage() {
   const { user } = useAuth()
-  const { data: visits, error, loading, reload } = useApiData('/api/visits')
+  const { data: visits, error, loading, retryable, reload } = useApiData('/api/visits')
   const canCreate = canAccess(user.role, PAGE_ROLES.newVisit)
 
   return (
@@ -63,7 +63,7 @@ export default function VisitsPage() {
         }
       />
 
-      <PageState loading={loading} error={error} onRetry={reload} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} />
 
       {visits && visits.length === 0 && (
         <EmptyState

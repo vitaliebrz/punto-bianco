@@ -31,11 +31,17 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [actionError, setActionError] = useState('')
   const wrapperRef = useRef(null)
+  const latestLoad = useRef(0)
   const navigate = useNavigate()
 
+  // Doar răspunsul ultimei cereri se afișează: o verificare veche (ex. pornită înainte de
+  // „Marchează toate ca citite”) care răspunde mai târziu nu readuce numărul vechi de necitite.
   const load = useCallback(() => {
+    const request = ++latestLoad.current
     apiFetch('/api/notifications')
-      .then(setData)
+      .then((result) => {
+        if (request === latestLoad.current) setData(result)
+      })
       .catch(() => {
         // păstrăm ce aveam; reîncercăm la următoarea verificare
       })

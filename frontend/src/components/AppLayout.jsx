@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ClipboardText } from '@phosphor-icons/react/ClipboardText'
 import { Buildings } from '@phosphor-icons/react/Buildings'
 import { List } from '@phosphor-icons/react/List'
@@ -7,7 +7,7 @@ import { SignOut } from '@phosphor-icons/react/SignOut'
 import { UsersThree } from '@phosphor-icons/react/UsersThree'
 import { Van } from '@phosphor-icons/react/Van'
 import { X } from '@phosphor-icons/react/X'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { cn } from '../cn'
 import { menuFor, NOTIFIED_ROLES } from '../navigation'
@@ -38,18 +38,47 @@ const initials = (fullName) =>
 // Telefon: bară sus (meniu, logo, clopoțel); bara laterală devine un panou care glisează din stânga.
 export default function AppLayout() {
   const { user, logout } = useAuth()
+  const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  // La orice schimbare de pagină (clic în meniu, pe logo, butonul Înapoi al telefonului) meniul
+  // de pe telefon se închide singur. (Starea se ajustează în timpul randării, modelul recomandat de React.)
+  const [menuPath, setMenuPath] = useState(pathname)
+  if (menuPath !== pathname) {
+    setMenuPath(pathname)
+    setMenuOpen(false)
+  }
+  const menuButtonRef = useRef(null)
+  const closeButtonRef = useRef(null)
   const menu = menuFor(user.role)
   const hasBell = NOTIFIED_ROLES.includes(user.role)
 
-  // Escape închide meniul de pe telefon
+  // Închis cu X, Escape sau clic pe fundal: focusul revine pe butonul care l-a deschis
+  const closeMenu = () => {
+    setMenuOpen(false)
+    menuButtonRef.current?.focus()
+  }
+
+  // La deschidere, focusul intră în meniu (pentru tastatură și cititoare de ecran)
+  useEffect(() => {
+    if (menuOpen) closeButtonRef.current?.focus()
+  }, [menuOpen])
+
+  // Escape închide meniul; pe ecran lat (ex. tabletă rotită) meniul nu mai e un panou, deci îl închidem
   useEffect(() => {
     if (!menuOpen) return
     const onKey = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key === 'Escape') closeMenu()
+    }
+    const wide = window.matchMedia?.('(min-width: 1024px)')
+    const onWide = () => {
+      if (wide.matches) setMenuOpen(false)
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    wide?.addEventListener?.('change', onWide)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      wide?.removeEventListener?.('change', onWide)
+    }
   }, [menuOpen])
 
   return (
@@ -59,7 +88,7 @@ export default function AppLayout() {
         <div
           aria-hidden="true"
           className="fixed inset-0 z-30 animate-fade-in bg-ink-900/30 lg:hidden"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeMenu}
         />
       )}
 
@@ -72,14 +101,15 @@ export default function AppLayout() {
         )}
       >
         <div className="flex h-16 items-center justify-between px-5">
-          <NavLink to="/" className="rounded-lg text-ink-700 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none">
+          <NavLink to="/" onClick={() => setMenuOpen(false)} className="rounded-lg text-ink-700 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none">
             <Logo />
           </NavLink>
           <button
+            ref={closeButtonRef}
             type="button"
             aria-label="Închide meniul"
             className="flex size-10 items-center justify-center rounded-xl text-ink-500 hover:bg-ink-100 lg:hidden"
-            onClick={() => setMenuOpen(false)}
+            onClick={closeMenu}
           >
             <X size={20} weight="bold" aria-hidden="true" />
           </button>
@@ -95,6 +125,7 @@ export default function AppLayout() {
                     <NavLink
                       to={item.path}
                       end
+                      // pe pagina curentă adresa nu se schimbă, deci închidem explicit
                       onClick={() => setMenuOpen(false)}
                       className={({ isActive }) =>
                         cn(
@@ -149,7 +180,8 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <div className="lg:pl-72">
+      {/* Cât e deschis meniul, pagina din spate nu poate fi atinsă sau selectată cu tastatura */}
+      <div className="lg:pl-72" inert={menuOpen}>
         {/* Pe calculator bara de sus apare doar pentru clopoțel (meniul și logo-ul sunt în bara laterală) */}
         <header
           className={cn(
@@ -158,6 +190,7 @@ export default function AppLayout() {
           )}
         >
           <button
+            ref={menuButtonRef}
             type="button"
             aria-label="Deschide meniul"
             aria-expanded={menuOpen}

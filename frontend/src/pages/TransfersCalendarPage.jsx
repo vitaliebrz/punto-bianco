@@ -21,19 +21,24 @@ export default function TransfersCalendarPage() {
   const { user } = useAuth()
   const [error, setError] = useState('')
   const calendarRef = useRef(null)
+  const latestRequest = useRef(0)
 
   // FullCalendar cere evenimentele pentru intervalul afișat (la fiecare schimbare de săptămână / lună).
   // startStr / endStr au fusul orar inclus (ex. „2026-10-26T00:00:00+02:00”), deci sunt corecte
   // și cu calendarul pe ora clinicii.
   const loadEvents = useCallback((range, success, failure) => {
+    const request = ++latestRequest.current
+    // Mesajul de eroare ține doar de intervalul afișat acum: o cerere veche (săptămâna de dinainte)
+    // care eșuează târziu nu arată eroare peste săptămâna nouă, încărcată corect.
+    const isLatest = () => request === latestRequest.current
     const query = new URLSearchParams({ from: range.startStr, to: range.endStr })
     apiFetch(`/api/transfers?${query}`)
       .then((events) => {
-        setError('')
+        if (isLatest()) setError('')
         success(events.map(toCalendarEvent))
       })
       .catch((err) => {
-        setError(err.message)
+        if (isLatest()) setError(err.message)
         failure(err)
       })
   }, [])

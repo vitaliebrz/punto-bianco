@@ -77,4 +77,67 @@ describe('„Vizita a fost înregistrată” se arată o singură dată', () => 
     // dar mesajul rămâne pe ecran cât utilizatorul e pe pagină
     expect(screen.getByText('Vizita a fost înregistrată, echipa a fost anunțată.')).toBeInTheDocument()
   })
+
+  it('după înregistrare, „Înapoi” duce la lista vizitelor (nu la formularul trimis) și mesajul nu mai apare', async () => {
+    localStorage.setItem('pb_token', 'token')
+    mockFetch({
+      'GET /api/auth/me': json(200, { user: USERS.coordonator }),
+      'GET /api/users/coordinators': json(200, [{ id: 2, fullName: 'Ana Ciobanu' }]),
+      'GET /api/visits': json(200, [VISIT]),
+      'POST /api/visits': json(201, VISIT),
+      'GET /api/visits/42': json(200, VISIT),
+    })
+    render(
+      <MemoryRouter initialEntries={['/vizite', '/vizite/noua']} initialIndex={1}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Înregistrează vizita' }))
+    expect(await screen.findByText('Vizita a fost înregistrată, echipa a fost anunțată.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Înapoi' }))
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+
+    // din listă, înapoi la aceeași vizită: fără mesajul de înregistrare
+    await user.click(await screen.findByRole('link', { name: /Marco Rossi/ }))
+    expect(await screen.findByRole('heading', { name: 'Detalii vizită' })).toBeInTheDocument()
+    expect(screen.queryByText('Vizita a fost înregistrată, echipa a fost anunțată.')).not.toBeInTheDocument()
+  })
+})
+
+describe('detaliile vizitei: „Înapoi” și „Reîncearcă”', () => {
+  it('pagina deschisă direct (fără istoric): „Înapoi” duce la prima pagină a rolului', async () => {
+    renderAs(USERS.coordonator, '/vizite/42', {
+      'GET /api/visits/42': json(200, VISIT),
+      'GET /api/visits': json(200, []),
+    })
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Înapoi' }))
+
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+  })
+
+  it('vizită inexistentă (404): mesajul, fără „Reîncearcă” (n-ar ajuta)', async () => {
+    renderAs(USERS.coordonator, '/vizite/999', { 'GET /api/visits/999': json(404, { error: 'Vizita nu există' }) })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vizita nu există')
+    expect(screen.queryByRole('button', { name: 'Reîncearcă' })).not.toBeInTheDocument()
+  })
+
+  it('eroare de server (500): „Reîncearcă” apare și încarcă din nou', async () => {
+    let serverUp = false
+    renderAs(USERS.coordonator, '/vizite/42', {
+      'GET /api/visits/42': () => (serverUp ? json(200, VISIT) : json(500, { error: 'Eroare internă' })),
+    })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Eroare internă')
+    serverUp = true
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reîncearcă' }))
+
+    expect(await screen.findByText('Implant')).toBeInTheDocument()
+  })
 })
