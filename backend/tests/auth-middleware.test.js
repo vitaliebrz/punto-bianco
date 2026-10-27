@@ -1,6 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { requireAuth, requireRole, readOnlyGuard } from '../src/middleware/auth.js';
+
+// Baza de date simulată: requireAuth citește utilizatorul după id-ul din token
+const db = vi.hoisted(() => ({
+  users: {
+    1: { id: 1, email: 'admin@puntobianco.demo', fullName: 'Admin', role: 'ADMIN', active: true },
+    2: { id: 2, email: 'sofer@puntobianco.demo', fullName: 'Șofer', role: 'SOFER', active: true },
+    3: { id: 3, email: 'fost@puntobianco.demo', fullName: 'Fost angajat', role: 'COORDONATOR', active: false },
+  },
+}));
+vi.mock('../src/lib/prisma.js', () => ({
+  default: { user: { findUnique: async ({ where }) => db.users[where.id] ?? null } },
+}));
 
 // Execută un middleware cu un req fals; întoarce statusul sau 'next'
 function run(middleware, req) {
@@ -57,6 +69,32 @@ describe('requireAuth (cazuri care nu ajung la baza de date)', () => {
   it('token valid dar cu id invalid -> 401', async () => {
     const token = jwt.sign({ role: 'ADMIN' }, process.env.JWT_SECRET, { subject: 'abc' });
     expect((await run(requireAuth, bearer(token))).status).toBe(401);
+  });
+});
+
+describe('requireAuth (utilizatorul citit din baza de date)', () => {
+  const tokenFor = (id, role = 'ADMIN') => jwt.sign({ role }, process.env.JWT_SECRET, { subject: String(id) });
+
+  it('utilizator activ -> trece, req.user vine din bază', async () => {
+    const req = bearer(tokenFor(1));
+    expect((await run(requireAuth, req)).status).toBe('next');
+    expect(req.user).toEqual(db.users[1]);
+  });
+
+  it('cont dezactivat -> 401, chiar dacă token-ul e încă valabil', async () => {
+    const result = await run(requireAuth, bearer(tokenFor(3, 'COORDONATOR')));
+    expect(result).toEqual({ status: 401, body: { error: 'Sesiune invalidă sau expirată' } });
+  });
+
+  it('cont șters -> 401', async () => {
+    expect((await run(requireAuth, bearer(tokenFor(99)))).status).toBe(401);
+  });
+
+  it('rolul se ia din bază, nu din token (rol schimbat între timp)', async () => {
+    // token emis când era ADMIN; în bază e acum SOFER
+    const req = bearer(tokenFor(2, 'ADMIN'));
+    expect((await run(requireAuth, req)).status).toBe('next');
+    expect(req.user.role).toBe('SOFER');
   });
 });
 
