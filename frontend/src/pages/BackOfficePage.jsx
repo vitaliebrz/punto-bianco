@@ -12,12 +12,13 @@ import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
 import Button from '../components/Button'
 import EmptyState from '../components/EmptyState'
+import Meta from '../components/Meta'
 import PageHeader from '../components/PageHeader'
 import PageState, { ErrorState } from '../components/PageState'
 import StatusBadge from '../components/StatusBadge'
 import StatusSummary from '../components/StatusSummary'
 import { formatDateTime } from '../format'
-import { fullName, peopleNames } from '../labels'
+import { countByStatus, fullName, peopleNames } from '../labels'
 import { isReadOnly } from '../roles'
 import { useApiData } from '../useApiData'
 
@@ -27,28 +28,18 @@ const NEXT_ACTION = {
   INCEPUT: { status: 'FINALIZAT', label: 'Finalizat', icon: CheckCircle },
 }
 
-const countBy = (visits, status) => visits.filter((visit) => visit.backOfficeStatus === status).length
-
-function Meta({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <Icon size={18} aria-hidden="true" className="shrink-0 text-ink-400" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="min-w-0 text-[15px] text-ink-800">{children}</dd>
-    </div>
-  )
-}
-
 // Pasul 2 din cerință: lista Back office, ordonată după data sosirii
 export default function BackOfficePage() {
   const { user } = useAuth()
   const readOnly = isReadOnly(user.role)
-  const { data: visits, error, loading, reload, setData } = useApiData('/api/visits')
-  const [busyId, setBusyId] = useState(null)
+  const { data: visits, error, loading, retryable, reload, setData } = useApiData('/api/visits')
+  // Vizitele care se salvează acum: fiecare card își blochează butonul separat, așa că
+  // un clic pe alt card nu deblochează butonul primului (care s-ar putea trimite de două ori).
+  const [busyIds, setBusyIds] = useState(() => new Set())
   const [actionError, setActionError] = useState('')
 
   async function changeStatus(visit, status) {
-    setBusyId(visit.id)
+    setBusyIds((ids) => new Set(ids).add(visit.id))
     setActionError('')
     try {
       const updated = await apiFetch(`/api/visits/${visit.id}/back-office-status`, {
@@ -61,9 +52,15 @@ export default function BackOfficePage() {
       // 409 = altcineva a schimbat deja statusul: arătăm starea reală
       if (err.status === 409) reload()
     } finally {
-      setBusyId(null)
+      setBusyIds((ids) => {
+        const next = new Set(ids)
+        next.delete(visit.id)
+        return next
+      })
     }
   }
+
+  const counts = countByStatus(visits ?? [], (visit) => visit.backOfficeStatus)
 
   return (
     <section className="flex flex-col gap-6">
@@ -72,16 +69,16 @@ export default function BackOfficePage() {
       {visits && visits.length > 0 && (
         <StatusSummary
           items={[
-            { label: 'Nepreluat', count: countBy(visits, 'NEPRELUAT'), tone: 'todo' },
-            { label: 'Început', count: countBy(visits, 'INCEPUT'), tone: 'progress' },
-            { label: 'Finalizat', count: countBy(visits, 'FINALIZAT'), tone: 'done' },
+            { label: 'Nepreluat', count: counts.NEPRELUAT ?? 0, tone: 'todo' },
+            { label: 'Început', count: counts.INCEPUT ?? 0, tone: 'progress' },
+            { label: 'Finalizat', count: counts.FINALIZAT ?? 0, tone: 'done' },
           ]}
         />
       )}
 
       {actionError && <ErrorState message={actionError} />}
 
-      <PageState loading={loading} error={error} onRetry={reload} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} />
 
       {visits && visits.length === 0 && (
         <EmptyState
@@ -95,7 +92,7 @@ export default function BackOfficePage() {
         <ul className="flex flex-col gap-3">
           {visits.map((visit) => {
             const action = NEXT_ACTION[visit.backOfficeStatus]
-            const busy = busyId === visit.id
+            const busy = busyIds.has(visit.id)
             const treated = visit.patients.filter((person) => person.treatment)
             return (
               <li

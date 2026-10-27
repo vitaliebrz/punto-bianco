@@ -80,7 +80,7 @@ export default function FormField({ id, label, error, hint, required = false, as
         {isEmptyDate && (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-base text-ink-400 peer-focus:hidden sm:text-[15px]"
+            className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-base text-ink-500 peer-focus:hidden sm:text-[15px]"
           >
             {datePlaceholder}
           </span>

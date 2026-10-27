@@ -130,7 +130,7 @@ Apoi push, PR #3 (cu bifa CI) și merge.
 | Refactor `createApp()` / `createAuthRouter()` | testele vechi (HTTP, login real, IP fals) trec neschimbate |
 | Teste backend | **106 teste** în 4 fișiere, toate trec (~11 s). Fără baza de date: 87 trec și 19 sunt sărite. |
 | Teste frontend | **8 teste**, toate trec. Cu bug-ul #4 reintrodus intenționat, testul „server indisponibil” pică, deci testele prind regresii. |
-| CI | `.github/workflows/ci.yml` cu 2 joburi (backend, frontend), Node 20, `npm ci`. YAML validat local; prima rulare reală e la PR #3. |
+| CI | `.github/workflows/ci.yml` cu 2 joburi (backend, frontend), Node 20, `npm ci`. YAML validat local; prima rulare reală e la PR #3. _(Actualizat în [planul 07](07-code-review-reparatii.md): Node 22, `prisma validate`, avertismentele de lint opresc CI-ul.)_ |
 
 **Abateri:**
 - **Locul testelor frontend:** sunt în `src/test/` (`auth.test.jsx` + `setup.js`), nu în `src/__tests__/`.

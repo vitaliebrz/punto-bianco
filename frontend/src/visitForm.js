@@ -1,4 +1,6 @@
 // Starea formularului „Vizită nouă” și transformarea ei în corpul cererii POST /api/visits.
+// Orele din formular sunt ora clinicii (Europe/Chisinau), oricare ar fi fusul orar al calculatorului.
+import { clinicLocalToIso } from './format'
 
 export function initialVisitForm(user) {
   return {
@@ -17,13 +19,6 @@ export function initialVisitForm(user) {
   }
 }
 
-// "2026-11-02T14:30" (ora locală din câmpul datetime-local) -> ISO în UTC
-function toIso(localValue) {
-  if (!localValue) return ''
-  const date = new Date(localValue)
-  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
-}
-
 // Trimite doar ce a ales coordonatorul: secțiunile nebifate devin null („nu e nevoie”).
 export function buildVisitPayload(form) {
   return {
@@ -38,8 +33,8 @@ export function buildVisitPayload(form) {
           }),
         }
       : null,
-    arrivalAt: toIso(form.arrivalAt),
-    departureAt: toIso(form.departureAt),
+    arrivalAt: clinicLocalToIso(form.arrivalAt),
+    departureAt: clinicLocalToIso(form.departureAt),
     coordinatorId: form.coordinatorId ? Number(form.coordinatorId) : null,
     accommodation: form.needsAccommodation
       ? {

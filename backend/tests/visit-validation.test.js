@@ -102,6 +102,28 @@ describe('createVisitSchema', () => {
       ).toEqual(['companion.availability']);
     });
 
+    it.each([
+      ['gol', ''],
+      ['doar spații', '   '],
+    ])('tratament trimis %s -> „Câmp obligatoriu” la companion.treatment', (_name, treatment) => {
+      const result = createVisitSchema.safeParse({
+        ...valid,
+        companion: { firstName: 'Anna', lastName: 'Rossi', treatment, availability: 'Dimineața' },
+      });
+      expect(result.success).toBe(false);
+      expect(result.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+        ['companion.treatment', 'Câmp obligatoriu'],
+      ]);
+    });
+
+    it('tratament null = fără tratament', () => {
+      const result = createVisitSchema.parse({
+        ...valid,
+        companion: { firstName: 'Anna', lastName: 'Rossi', treatment: null },
+      });
+      expect(result.companion.treatment).toBeNull();
+    });
+
     it('respinge însoțitorul fără nume', () => {
       expect(errorsOf({ ...valid, companion: { firstName: 'Anna' } })).toEqual([
         'companion.lastName',
@@ -124,6 +146,15 @@ describe('createVisitSchema', () => {
       ['număr', 1730550600000],
     ])('respinge sosirea: %s', (_name, arrivalAt) => {
       expect(errorsOf({ ...valid, arrivalAt })).toContain('arrivalAt');
+    });
+
+    it('câmp gol -> „Câmp obligatoriu”; dată greșită -> „Dată și oră invalide”', () => {
+      const messageFor = (arrivalAt) =>
+        createVisitSchema.safeParse({ ...valid, arrivalAt }).error.issues.find((i) => i.path[0] === 'arrivalAt')
+          .message;
+      expect(messageFor('')).toBe('Câmp obligatoriu');
+      expect(messageFor(undefined)).toBe('Câmp obligatoriu');
+      expect(messageFor('mâine')).toBe('Dată și oră invalide');
     });
   });
 

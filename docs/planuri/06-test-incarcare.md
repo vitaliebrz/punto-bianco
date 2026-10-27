@@ -50,7 +50,7 @@ Cerința nu a fost însă **măsurată**. Acum o verificăm cu un test automat, 
   - statistici pe rute: p50, p95, p99, max, erori, plus un tabel la final;
   - marcaj pe datele create: numele de familie al pacientului e `TestIncarcare`;
   - **curățenie** la final (și la Ctrl+C sau eroare): șterge prin Prisma vizitele cu acest marcaj, iar persoanele, cazarea, transferul și notificările lor se șterg în cascadă; apoi verifică faptul că nu a rămas nimic;
-  - siguranță: afișează host-ul bazei. **Scrierile sunt pornite doar dacă `LOAD_WRITES=1`**, iar `npm run load-test` le pornește doar pentru serverul local; refuză să scrie dacă `NODE_ENV=production`.
+  - siguranță: afișează host-ul bazei. **Scrierile sunt pornite doar dacă `LOAD_WRITES=1`**, iar `npm run load-test` le pornește doar pentru serverul local; refuză să scrie dacă `NODE_ENV=production`. _(Mai strict din [planul 07](07-code-review-reparatii.md): scrierile sunt permise **doar** pe API-ul local și doar dacă baza din `.env` e cea din `DB_WRITE_HOST`.)_
 - **`backend/package.json`:** `"load-test": "node scripts/load-test.js"`.
 - **Parametri** (variabile de mediu):
   - `LOAD_BASE_URL` (implicit `http://localhost:3000`);
@@ -113,4 +113,7 @@ cd backend
 npm run dev          # într-un terminal: API-ul
 npm run load-test    # în altul: 50 de utilizatori, 60 s (scrie în baza dev și curăță la final)
 ```
-Pentru aplicația publicată: `LOAD_BASE_URL=https://… LOAD_WRITES=0 npm run load-test` (doar citiri).
+Pentru aplicația publicată (doar citiri), în PowerShell:
+```powershell
+$env:LOAD_BASE_URL = "https://…"; $env:LOAD_WRITES = "0"; npm run load-test
+```

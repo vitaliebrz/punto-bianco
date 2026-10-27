@@ -7,6 +7,7 @@ import { CheckCircle } from '@phosphor-icons/react/CheckCircle'
 import { ClipboardText } from '@phosphor-icons/react/ClipboardText'
 import { UsersThree } from '@phosphor-icons/react/UsersThree'
 import { Van } from '@phosphor-icons/react/Van'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import PageHeader from '../components/PageHeader'
@@ -15,10 +16,14 @@ import Panel, { Detail } from '../components/Panel'
 import Skeleton from '../components/Skeleton'
 import StatusBadge from '../components/StatusBadge'
 import { formatDateTime } from '../format'
-import { APARTMENT_LABELS, fullName, TRANSFER_DIRECTION_LABELS } from '../labels'
+import {
+  accommodationCostLabel,
+  APARTMENT_LABELS,
+  fullName,
+  TRANSFER_DIRECTION_LABELS,
+  transferCostLabel,
+} from '../labels'
 import { useApiData } from '../useApiData'
-
-const freeLabel = (isFree) => (isFree ? 'Gratuit' : 'Contra cost')
 
 const initials = (person) => `${person.firstName[0] ?? ''}${person.lastName[0] ?? ''}`.toUpperCase()
 
@@ -41,14 +46,28 @@ export default function VisitDetailsPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: visit, error, loading, reload } = useApiData(`/api/visits/${id}`)
-  // Mesajul de după înregistrare (vine din formular)
-  const justCreated = location.state?.created === true
+  const { data: visit, error, loading, retryable, reload } = useApiData(`/api/visits/${id}`)
+
+  // Mesajul de după înregistrare (vine din formular, prin starea din istoricul browserului).
+  // Ținem minte pentru ce vizită l-am primit, apoi ștergem marcajul din istoric:
+  // altfel mesajul ar reapărea la F5 sau la „Înapoi”, deși nu s-a înregistrat nimic nou.
+  const [createdVisitId] = useState(() => (location.state?.created === true ? id : null))
+  const justCreated = createdVisitId === id
+  useEffect(() => {
+    if (location.state?.created) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <Button variant="ghost" size="sm" icon={ArrowLeft} className="-ml-2" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={ArrowLeft}
+          className="-ml-2"
+          // Deschisă direct (link primit, tab nou) nu are pagină anterioară: mergem la prima pagină a rolului
+          onClick={() => (location.key === 'default' ? navigate('/') : navigate(-1))}
+        >
           Înapoi
         </Button>
       </div>
@@ -65,7 +84,7 @@ export default function VisitDetailsPage() {
         </p>
       )}
 
-      <PageState loading={loading} error={error} onRetry={reload} skeleton={detailsSkeleton} />
+      <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} skeleton={detailsSkeleton} />
 
       {visit && (
         <div className="grid items-start gap-5 lg:grid-cols-3">
@@ -88,14 +107,17 @@ export default function VisitDetailsPage() {
                         </span>
                       </div>
                     </div>
-                    <dl className="grid gap-4 sm:grid-cols-2">
-                      <Detail label="Tratament">
-                        {person.treatment ?? <span className="text-ink-400">Fără tratament</span>}
-                      </Detail>
-                      <Detail label="Disponibilitate">
-                        {person.availability ?? <span className="text-ink-400">Necompletat</span>}
-                      </Detail>
-                    </dl>
+                    {/* Managerul de cazări primește persoanele fără date medicale: blocul nu apare deloc */}
+                    {'treatment' in person && (
+                      <dl className="grid gap-4 sm:grid-cols-2">
+                        <Detail label="Tratament">
+                          {person.treatment ?? <span className="text-ink-500">Fără tratament</span>}
+                        </Detail>
+                        <Detail label="Disponibilitate">
+                          {person.availability ?? <span className="text-ink-500">Necompletat</span>}
+                        </Detail>
+                      </dl>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -130,9 +152,7 @@ export default function VisitDetailsPage() {
                 <dl className="grid grid-cols-2 gap-4">
                   <Detail label="Apartament">{APARTMENT_LABELS[visit.accommodation.apartmentType]}</Detail>
                   <Detail label="Cost">
-                    {visit.accommodation.isFree
-                      ? `Gratuită ${visit.accommodation.freeDays} ${visit.accommodation.freeDays === 1 ? 'zi' : 'zile'}`
-                      : 'Contra cost'}
+                    {accommodationCostLabel(visit.accommodation)}
                   </Detail>
                 </dl>
               ) : (
@@ -144,7 +164,7 @@ export default function VisitDetailsPage() {
               {visit.transfer ? (
                 <dl className="grid grid-cols-2 gap-4">
                   <Detail label="Direcție">{TRANSFER_DIRECTION_LABELS[visit.transfer.direction]}</Detail>
-                  <Detail label="Cost">{freeLabel(visit.transfer.isFree)}</Detail>
+                  <Detail label="Cost">{transferCostLabel(visit.transfer.isFree)}</Detail>
                 </dl>
               ) : (
                 <p className="text-[15px] text-ink-500">Nu e nevoie de transfer.</p>

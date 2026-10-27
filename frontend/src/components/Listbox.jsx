@@ -67,6 +67,13 @@ export default function Listbox({
     if (open) listRef.current?.focus()
   }, [open])
 
+  // Opțiunea activă (aleasă cu săgețile) rămâne vizibilă când lista e mai lungă decât fereastra ei
+  useEffect(() => {
+    if (open && activeIndex >= 0) {
+      document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView?.({ block: 'nearest' })
+    }
+  }, [open, activeIndex, listId])
+
   function openList() {
     if (disabled || options.length === 0) return
     const index = options.findIndex((option) => String(option.value) === String(value))
@@ -145,7 +152,7 @@ export default function Listbox({
             <span className="truncate">{selected.label}</span>
           </>
         ) : (
-          <span className="truncate text-ink-400">{placeholder}</span>
+          <span className="truncate text-ink-500">{placeholder}</span>
         )}
         <CaretUpDown size={18} aria-hidden="true" className="ml-auto shrink-0 text-ink-500" />
       </button>

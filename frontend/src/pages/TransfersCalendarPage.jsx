@@ -3,10 +3,12 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
+import luxonPlugin from '@fullcalendar/luxon3'
 import roLocale from '@fullcalendar/core/locales/ro'
 import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
 import { ErrorState } from '../components/PageState'
+import { CLINIC_TIME_ZONE } from '../format'
 import { isReadOnly } from '../roles'
 import { toCalendarEvent } from '../transferEvents'
 import '../calendar.css'
@@ -19,20 +21,24 @@ export default function TransfersCalendarPage() {
   const { user } = useAuth()
   const [error, setError] = useState('')
   const calendarRef = useRef(null)
+  const latestRequest = useRef(0)
 
-  // FullCalendar cere evenimentele pentru intervalul afișat (la fiecare schimbare de săptămână / lună)
+  // FullCalendar cere evenimentele pentru intervalul afișat (la fiecare schimbare de săptămână / lună).
+  // startStr / endStr au fusul orar inclus (ex. „2026-10-26T00:00:00+02:00”), deci sunt corecte
+  // și cu calendarul pe ora clinicii.
   const loadEvents = useCallback((range, success, failure) => {
-    const query = new URLSearchParams({
-      from: range.start.toISOString(),
-      to: range.end.toISOString(),
-    })
+    const request = ++latestRequest.current
+    // Mesajul de eroare ține doar de intervalul afișat acum: o cerere veche (săptămâna de dinainte)
+    // care eșuează târziu nu arată eroare peste săptămâna nouă, încărcată corect.
+    const isLatest = () => request === latestRequest.current
+    const query = new URLSearchParams({ from: range.startStr, to: range.endStr })
     apiFetch(`/api/transfers?${query}`)
       .then((events) => {
-        setError('')
+        if (isLatest()) setError('')
         success(events.map(toCalendarEvent))
       })
       .catch((err) => {
-        setError(err.message)
+        if (isLatest()) setError(err.message)
         failure(err)
       })
   }, [])
@@ -63,8 +69,11 @@ export default function TransfersCalendarPage() {
       <div className="pb-calendar rounded-2xl bg-white p-3 shadow-card ring-1 ring-ink-200/60 sm:p-5">
         <FullCalendar
           ref={calendarRef}
-          plugins={[timeGridPlugin, dayGridPlugin, listPlugin]}
+          plugins={[timeGridPlugin, dayGridPlugin, listPlugin, luxonPlugin]}
           locale={roLocale}
+          // Grila, „azi”, linia orei curente și textul evenimentelor: toate în ora clinicii,
+          // oricare ar fi fusul orar al telefonului (extensia luxon știe fusurile orare cu nume).
+          timeZone={CLINIC_TIME_ZONE}
           initialView={isNarrowScreen() ? 'listWeek' : 'timeGridWeek'}
           headerToolbar={{
             left: 'prev,next today',

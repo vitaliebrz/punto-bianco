@@ -57,6 +57,8 @@ z.object({
 - maxim 10 încercări **greșite** în 15 minute de pe același IP, apoi → **429**;
 - `trust proxy` e activat, ca pe Render să se vadă IP-ul real al utilizatorului.
 
+> **Actualizat ulterior:** `trust proxy` se activează doar cu variabila `TRUST_PROXY` ([planul 03](03-code-review-si-teste.md)), iar limita e acum dublă: 10 încercări eșuate **pe cont** (email + IP) și 100 **pe IP** ([planul 06](06-test-incarcare.md)). Aplicația se construiește în `src/app.js` (`createApp()`); `src/index.js` doar o pornește.
+
 ### 5. Rute de autentificare — `backend/src/routes/auth.js`
 **`POST /api/auth/login`**: limitare → validare → verificare. Răspunde cu `{ token, user: { id, email, fullName, role } }`.
 - Pentru email inexistent, parolă greșită sau cont inactiv, mesajul e același: „Email sau parolă greșite” (**401**).

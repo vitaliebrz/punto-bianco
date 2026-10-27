@@ -22,7 +22,8 @@ export function personCreateData(person, isCompanion) {
 }
 
 // Forma trimisă clientului: tratamentul ca text simplu, fără câmpuri interne.
-export function serializeVisit(visit) {
+// medical: false -> persoanele vin fără tratament și disponibilitate (pentru cine nu are nevoie de ele).
+export function serializeVisit(visit, { medical = true } = {}) {
   return {
     id: visit.id,
     arrivalAt: visit.arrivalAt,
@@ -39,8 +40,10 @@ export function serializeVisit(visit) {
       firstName: person.firstName,
       lastName: person.lastName,
       isCompanion: person.isCompanion,
-      availability: person.availability,
-      treatment: person.treatment?.description ?? null,
+      ...(medical && {
+        availability: person.availability,
+        treatment: person.treatment?.description ?? null,
+      }),
     })),
     accommodation: visit.accommodation && {
       id: visit.accommodation.id,
