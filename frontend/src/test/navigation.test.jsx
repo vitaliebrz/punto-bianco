@@ -32,7 +32,7 @@ const menuLabels = (role) => menuFor(role).map((item) => item.label)
 
 describe('meniul pe roluri', () => {
   it.each([
-    ['ADMIN', ['Vizite', 'Vizită nouă', 'Back office', 'Cazări', 'Calendar transferuri']],
+    ['ADMIN', ['Vizite', 'Vizită nouă', 'Back office', 'Cazări', 'Calendar transferuri', 'Utilizatori']],
     ['COORDONATOR', ['Vizite', 'Vizită nouă']],
     ['BACK_OFFICE', ['Back office']],
     ['MANAGER_CAZARI', ['Cazări']],

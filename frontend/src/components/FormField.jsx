@@ -34,7 +34,19 @@ const dateControlClasses = cn(
 // Un câmp de formular cu etichetă deasupra și mesaj de eroare sub el.
 // as="textarea" | "select" | "input" (implicit); restul proprietăților ajung la câmp.
 // required: asterisc după etichetă + aria-required (validarea o face serverul).
-export default function FormField({ id, label, error, hint, required = false, as = 'input', className, children, ...props }) {
+// action: un buton în dreapta câmpului (ex. „Arată parola”), doar pentru câmpurile text.
+export default function FormField({
+  id,
+  label,
+  error,
+  hint,
+  required = false,
+  as = 'input',
+  action,
+  className,
+  children,
+  ...props
+}) {
   const Control = as
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined
   const datePlaceholder = as === 'input' ? DATE_TYPES[props.type] : undefined
@@ -51,6 +63,7 @@ export default function FormField({ id, label, error, hint, required = false, as
         as === 'select' && 'appearance-none pr-10',
         as === 'textarea' && 'resize-y',
         datePlaceholder && dateControlClasses,
+        action && 'pr-12',
         // gol: ascundem masca browserului („zz.ll.aaaa, --:--”) și arătăm textul nostru; la focus revine masca
         isEmptyDate && 'text-transparent focus:text-ink-900',
       )}
@@ -61,7 +74,14 @@ export default function FormField({ id, label, error, hint, required = false, as
   )
 
   let field = control
-  if (as === 'select') {
+  if (action) {
+    field = (
+      <div className="relative">
+        {control}
+        <div className="absolute inset-y-0 right-1 flex items-center">{action}</div>
+      </div>
+    )
+  } else if (as === 'select') {
     field = (
       <div className="relative">
         {control}

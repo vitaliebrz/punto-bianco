@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { CircleNotch } from '@phosphor-icons/react/CircleNotch'
 import { EnvelopeSimple } from '@phosphor-icons/react/EnvelopeSimple'
-import { Eye } from '@phosphor-icons/react/Eye'
-import { EyeSlash } from '@phosphor-icons/react/EyeSlash'
 import { LockSimple } from '@phosphor-icons/react/LockSimple'
 import { SignIn } from '@phosphor-icons/react/SignIn'
 import { WarningCircle } from '@phosphor-icons/react/WarningCircle'
@@ -11,6 +9,7 @@ import { useAuth } from '../auth/useAuth'
 import { cn } from '../cn'
 import Button from '../components/Button'
 import Logo from '../components/Logo'
+import PasswordToggle from '../components/PasswordToggle'
 import { controlClasses } from '../formStyles'
 
 // Câmp cu iconiță în stânga (email, parolă); `action` = un buton în dreapta câmpului
@@ -114,20 +113,11 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               action={
-                <button
-                  type="button"
-                  aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
-                  aria-pressed={showPassword}
-                  aria-controls="password"
-                  onClick={() => setShowPassword((value) => !value)}
-                  className="flex size-10 items-center justify-center rounded-lg text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-800 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none"
-                >
-                  {showPassword ? (
-                    <EyeSlash size={20} aria-hidden="true" />
-                  ) : (
-                    <Eye size={20} aria-hidden="true" />
-                  )}
-                </button>
+                <PasswordToggle
+                  controls="password"
+                  shown={showPassword}
+                  onToggle={() => setShowPassword((value) => !value)}
+                />
               }
             />
 

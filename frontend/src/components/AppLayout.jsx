@@ -4,6 +4,7 @@ import { Buildings } from '@phosphor-icons/react/Buildings'
 import { List } from '@phosphor-icons/react/List'
 import { PlusCircle } from '@phosphor-icons/react/PlusCircle'
 import { SignOut } from '@phosphor-icons/react/SignOut'
+import { UserGear } from '@phosphor-icons/react/UserGear'
 import { UsersThree } from '@phosphor-icons/react/UsersThree'
 import { Van } from '@phosphor-icons/react/Van'
 import { X } from '@phosphor-icons/react/X'
@@ -22,6 +23,7 @@ const MENU_ICONS = {
   '/back-office': ClipboardText,
   '/cazari': Buildings,
   '/transferuri': Van,
+  '/utilizatori': UserGear,
 }
 
 // Inițialele pentru avatar: „Elena Popescu” -> „EP”
