@@ -115,6 +115,7 @@ export default function LoginPage() {
               icon={LockSimple}
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
+              placeholder="Introdu parola"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
