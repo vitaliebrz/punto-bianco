@@ -12,12 +12,13 @@ import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
 import Button from '../components/Button'
 import EmptyState from '../components/EmptyState'
+import Meta from '../components/Meta'
 import PageHeader from '../components/PageHeader'
 import PageState, { ErrorState } from '../components/PageState'
 import StatusBadge from '../components/StatusBadge'
 import StatusSummary from '../components/StatusSummary'
 import { formatDateTime } from '../format'
-import { fullName, peopleNames } from '../labels'
+import { countByStatus, fullName, peopleNames } from '../labels'
 import { isReadOnly } from '../roles'
 import { useApiData } from '../useApiData'
 
@@ -25,18 +26,6 @@ import { useApiData } from '../useApiData'
 const NEXT_ACTION = {
   NEPRELUAT: { status: 'INCEPUT', label: 'Început', icon: Play },
   INCEPUT: { status: 'FINALIZAT', label: 'Finalizat', icon: CheckCircle },
-}
-
-const countBy = (visits, status) => visits.filter((visit) => visit.backOfficeStatus === status).length
-
-function Meta({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <Icon size={18} aria-hidden="true" className="shrink-0 text-ink-400" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="min-w-0 text-[15px] text-ink-800">{children}</dd>
-    </div>
-  )
 }
 
 // Pasul 2 din cerință: lista Back office, ordonată după data sosirii
@@ -65,6 +54,8 @@ export default function BackOfficePage() {
     }
   }
 
+  const counts = countByStatus(visits ?? [], (visit) => visit.backOfficeStatus)
+
   return (
     <section className="flex flex-col gap-6">
       <PageHeader title="Back office" description="Pacienții în ordinea datei de sosire." readOnly={readOnly} />
@@ -72,9 +63,9 @@ export default function BackOfficePage() {
       {visits && visits.length > 0 && (
         <StatusSummary
           items={[
-            { label: 'Nepreluat', count: countBy(visits, 'NEPRELUAT'), tone: 'todo' },
-            { label: 'Început', count: countBy(visits, 'INCEPUT'), tone: 'progress' },
-            { label: 'Finalizat', count: countBy(visits, 'FINALIZAT'), tone: 'done' },
+            { label: 'Nepreluat', count: counts.NEPRELUAT ?? 0, tone: 'todo' },
+            { label: 'Început', count: counts.INCEPUT ?? 0, tone: 'progress' },
+            { label: 'Finalizat', count: counts.FINALIZAT ?? 0, tone: 'done' },
           ]}
         />
       )}

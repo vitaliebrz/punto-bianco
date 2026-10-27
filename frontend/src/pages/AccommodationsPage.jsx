@@ -12,29 +12,15 @@ import { useAuth } from '../auth/useAuth'
 import { cn } from '../cn'
 import Button from '../components/Button'
 import EmptyState from '../components/EmptyState'
+import Meta from '../components/Meta'
 import PageHeader from '../components/PageHeader'
 import PageState, { ErrorState } from '../components/PageState'
 import StatusBadge from '../components/StatusBadge'
 import StatusSummary from '../components/StatusSummary'
 import { formatDateTime } from '../format'
-import { APARTMENT_LABELS, peopleNames } from '../labels'
+import { accommodationCostLabel, APARTMENT_LABELS, countByStatus, peopleNames } from '../labels'
 import { isReadOnly } from '../roles'
 import { useApiData } from '../useApiData'
-
-const costLabel = ({ isFree, freeDays }) =>
-  isFree ? `Gratuită ${freeDays} ${freeDays === 1 ? 'zi' : 'zile'}` : 'Contra cost'
-
-const countBy = (requests, status) => requests.filter((request) => request.status === status).length
-
-function Meta({ icon: Icon, label, children }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2">
-      <Icon size={18} aria-hidden="true" className="shrink-0 text-ink-400" />
-      <dt className="sr-only">{label}</dt>
-      <dd className="min-w-0 text-[15px] text-ink-800">{children}</dd>
-    </div>
-  )
-}
 
 // Pasul 2 din cerință: cererile de cazare stau „Neprelucrat” până se marchează „Rezervat”
 export default function AccommodationsPage() {
@@ -62,6 +48,8 @@ export default function AccommodationsPage() {
     }
   }
 
+  const counts = countByStatus(requests ?? [], (request) => request.status)
+
   return (
     <section className="flex flex-col gap-6">
       <PageHeader title="Cazări" description="Cererile de cazare, în ordinea datei de sosire." readOnly={readOnly} />
@@ -69,8 +57,8 @@ export default function AccommodationsPage() {
       {requests && requests.length > 0 && (
         <StatusSummary
           items={[
-            { label: 'Neprelucrat', count: countBy(requests, 'NEPRELUCRAT'), tone: 'todo' },
-            { label: 'Rezervat', count: countBy(requests, 'REZERVAT'), tone: 'done' },
+            { label: 'Neprelucrat', count: counts.NEPRELUCRAT ?? 0, tone: 'todo' },
+            { label: 'Rezervat', count: counts.REZERVAT ?? 0, tone: 'done' },
           ]}
         />
       )}
@@ -116,7 +104,7 @@ export default function AccommodationsPage() {
                         request.isFree ? 'bg-mint-100 text-mint-800' : 'bg-ink-100 text-ink-700',
                       )}
                     >
-                      {costLabel(request)}
+                      {accommodationCostLabel(request)}
                     </span>
                   </div>
 

@@ -16,10 +16,14 @@ import Panel, { Detail } from '../components/Panel'
 import Skeleton from '../components/Skeleton'
 import StatusBadge from '../components/StatusBadge'
 import { formatDateTime } from '../format'
-import { APARTMENT_LABELS, fullName, TRANSFER_DIRECTION_LABELS } from '../labels'
+import {
+  accommodationCostLabel,
+  APARTMENT_LABELS,
+  fullName,
+  TRANSFER_DIRECTION_LABELS,
+  transferCostLabel,
+} from '../labels'
 import { useApiData } from '../useApiData'
-
-const freeLabel = (isFree) => (isFree ? 'Gratuit' : 'Contra cost')
 
 const initials = (person) => `${person.firstName[0] ?? ''}${person.lastName[0] ?? ''}`.toUpperCase()
 
@@ -138,9 +142,7 @@ export default function VisitDetailsPage() {
                 <dl className="grid grid-cols-2 gap-4">
                   <Detail label="Apartament">{APARTMENT_LABELS[visit.accommodation.apartmentType]}</Detail>
                   <Detail label="Cost">
-                    {visit.accommodation.isFree
-                      ? `Gratuită ${visit.accommodation.freeDays} ${visit.accommodation.freeDays === 1 ? 'zi' : 'zile'}`
-                      : 'Contra cost'}
+                    {accommodationCostLabel(visit.accommodation)}
                   </Detail>
                 </dl>
               ) : (
@@ -152,7 +154,7 @@ export default function VisitDetailsPage() {
               {visit.transfer ? (
                 <dl className="grid grid-cols-2 gap-4">
                   <Detail label="Direcție">{TRANSFER_DIRECTION_LABELS[visit.transfer.direction]}</Detail>
-                  <Detail label="Cost">{freeLabel(visit.transfer.isFree)}</Detail>
+                  <Detail label="Cost">{transferCostLabel(visit.transfer.isFree)}</Detail>
                 </dl>
               ) : (
                 <p className="text-[15px] text-ink-500">Nu e nevoie de transfer.</p>
