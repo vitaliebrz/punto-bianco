@@ -1,7 +1,5 @@
 @import 'tailwindcss';
 @import './fonts.css';
-/* Stilul vechi, doar până trec toate paginile pe Tailwind (stratul components: utilitarele au prioritate) */
-@import './legacy.css' layer(components);
 
 /* ---------- Sistemul de design Punto Bianco ----------
    Culorile brandului: menta #98D3C3 (mint-300) și griul #565555 (ink-600).

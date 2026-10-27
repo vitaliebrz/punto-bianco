@@ -1,4 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import Loader from '../components/Loader'
+import { ErrorState } from '../components/PageState'
 import { useAuth } from './useAuth'
 
 // Pagini doar pentru utilizatori conectați. Opțional: doar anumite roluri (ADMIN are acces mereu).
@@ -7,17 +9,16 @@ export default function ProtectedRoute({ roles }) {
   const location = useLocation()
 
   if (loading) {
-    return <p className="page-status">Se încarcă…</p>
+    return <Loader fullScreen />
   }
 
   // Sesiunea nu a putut fi verificată (server indisponibil): nu deconectăm, oferim reîncercare
   if (!user && sessionError) {
     return (
-      <div className="page-status">
-        <p role="alert">{sessionError}</p>
-        <button type="button" className="btn btn-primary" onClick={checkSession}>
-          Reîncearcă
-        </button>
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <ErrorState message={sessionError} onRetry={checkSession} />
+        </div>
       </div>
     )
   }

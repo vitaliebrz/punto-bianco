@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './auth/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 import HomeRedirect from './components/HomeRedirect'
+import Loader from './components/Loader'
 import ScrollToTop from './components/ScrollToTop'
 import { PAGE_ROLES } from './navigation'
 import AccommodationsPage from './pages/AccommodationsPage'
@@ -43,7 +44,7 @@ export default function App() {
               <Route
                 path="/transferuri"
                 element={
-                  <Suspense fallback={<p className="page-status">Se încarcă…</p>}>
+                  <Suspense fallback={<Loader />}>
                     <TransfersCalendarPage />
                   </Suspense>
                 }
