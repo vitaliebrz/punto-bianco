@@ -1,6 +1,6 @@
 # Plan 08 — Gestionarea utilizatorilor (Admin)
 
-**Ziua 3** · Ramura: `feature/user-management` · Status: **în lucru**
+**Ziua 3** · Ramura: `feature/user-management` · Status: **finalizat**
 
 ## Context
 Acum conturile se creează doar din seed, care șterge toate datele. Admin-ul nu poate adăuga un coleg nou și nu poate opri accesul cuiva care pleacă din clinică.
@@ -124,4 +124,33 @@ La final: PR **`feat: admin user management`**.
 3. Pe telefon: lista și formularul arată bine.
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+
+### Rezultat
+- **Backend:** `GET`, `POST /api/users` și `PATCH /api/users/:id/active`, doar pentru Admin.
+  - Parola se salvează doar ca hash bcrypt.
+  - Un email deja folosit primește 409, cu eroarea la câmpul Email (regula ține și la două cereri simultane).
+  - Admin-ul nu se poate dezactiva pe sine.
+  - Regulile pentru email și parolă sunt comune cu login-ul (`schemas/auth.js`).
+- **Frontend:** pagina **Utilizatori** (`/utilizatori`), doar pentru Admin:
+  - lista conturilor, cu insigna Activ / Inactiv și „(tu)” la contul propriu;
+  - formularul de cont nou, cu „Arată parola”;
+  - dezactivarea, cu confirmare, și reactivarea.
+- **Teste:**
+
+  | | înainte | după |
+  |---|---|---|
+  | backend | 285 | **349** |
+  | frontend | 92 | **99** |
+
+  Testul `db-users` a rulat pe Neon `dev`, cu acordul dat; după rulare n-a rămas niciun cont de test. Lint-ul (fără avertismente) și build-ul sunt curate.
+- **Baza de date:** nicio schimbare, nicio migrare.
+
+### Abateri
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| — | `tests/users-api.test.js`: rutele noi prin HTTP, cu baza simulată (hash, 409, 400, 404, 500) | altfel reacțiile rutelor ar fi verificate doar de testul pe baza reală, care nu rulează în CI |
+| `GET /api/users/coordinators` neschimbat | neschimbat; matricea de acces verifică acum că e deschis tuturor rolurilor | formularul de vizită are nevoie de el |
+| componenta `PasswordField` | `PasswordToggle` (doar butonul cu ochi) + `action` în `FormField` | pagina de login are câmp cu iconiță, formularul folosește `FormField`; comun le e doar butonul |
+| — | insigna Activ / Inactiv prin `StatusBadge` (`USER_STATUS_LABELS` în `labels.js`) | aceeași insignă ca la statusurile vizitelor |
+| — | lista are eticheta „Lista utilizatorilor” | o găsesc cititoarele de ecran (și testele: numele Admin-ului apare și în bara laterală) |
+| — | fără focus automat pe primul câmp greșit (cum are „Vizită nouă”) | formularul are 4 câmpuri, toate pe ecran; eroarea se vede lângă câmp |
