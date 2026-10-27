@@ -64,6 +64,33 @@ describe('Back office', () => {
     expect(listCalls).toBe(2)
   })
 
+  it('două carduri salvate în paralel: primul rămâne blocat până la răspunsul lui (fără trimitere dublă)', async () => {
+    const otherVisit = { ...VISIT, id: 45 }
+    let finishFirst
+    const fetchMock = renderAs(USERS.backoffice, '/back-office', {
+      'GET /api/visits': json(200, [VISIT, otherVisit]),
+      'PATCH /api/visits/42/back-office-status': () => new Promise((resolve) => (finishFirst = resolve)),
+      'PATCH /api/visits/45/back-office-status': json(200, { ...otherVisit, backOfficeStatus: 'INCEPUT' }),
+    })
+    const user = userEvent.setup()
+    const first = await cardOf(42)
+    const second = await cardOf(45)
+
+    await user.click(within(first).getByRole('button', { name: 'Început' }))
+    await user.click(within(second).getByRole('button', { name: 'Început' }))
+    expect(await within(second).findByRole('button', { name: 'Finalizat' })).toBeInTheDocument()
+
+    // al doilea card a terminat, dar primul încă așteaptă: butonul lui rămâne blocat
+    const firstButton = within(first).getByRole('button', { name: /Se salvează/ })
+    expect(firstButton).toBeDisabled()
+    await user.click(firstButton)
+    const patches = fetchMock.mock.calls.filter(([url]) => new URL(url).pathname === '/api/visits/42/back-office-status')
+    expect(patches).toHaveLength(1)
+
+    finishFirst(json(200, { ...VISIT, backOfficeStatus: 'INCEPUT' }))
+    expect(await within(first).findByRole('button', { name: 'Finalizat' })).toBeEnabled()
+  })
+
   it('contabil: vede lista, fără butoane', async () => {
     renderAs(USERS.contabil, '/back-office', { 'GET /api/visits': json(200, [VISIT, startedVisit]) })
 
@@ -111,6 +138,24 @@ describe('Cazări', () => {
     expect(within(card).getByText('01.11.2026 12:00')).toBeInTheDocument()
     expect(within(card).queryByRole('button')).not.toBeInTheDocument()
     expect(sentBody(fetchMock, 'PATCH', '/api/accommodations/5/status')).toEqual({ status: 'REZERVAT' })
+  })
+
+  it('409 (cererea a fost deja rezervată): mesaj + lista reîncărcată', async () => {
+    let listCalls = 0
+    renderAs(USERS.cazari, '/cazari', {
+      'GET /api/accommodations': () => {
+        listCalls += 1
+        return json(200, [listCalls === 1 ? request : { ...request, status: 'REZERVAT', reservedAt: '2026-11-01T10:00:00.000Z' }])
+      },
+      'PATCH /api/accommodations/5/status': json(409, { error: 'Cererea a fost deja rezervată.' }),
+    })
+
+    await userEvent.setup().click(within(await cardOf(42)).getByRole('button', { name: 'Marchează rezervat' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Cererea a fost deja rezervată.')
+    expect(await within(await cardOf(42)).findByText('Rezervat')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Marchează rezervat' })).not.toBeInTheDocument()
+    expect(listCalls).toBe(2)
   })
 
   it('control calitate: doar vizualizare', async () => {

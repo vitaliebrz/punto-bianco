@@ -124,6 +124,99 @@ describe('formularul „Vizită nouă”', () => {
     expect(screen.getByRole('button', { name: 'Înregistrează vizita' })).toBeEnabled()
   })
 
+  it('după eroare: focus pe primul câmp greșit; eroarea dispare când câmpul e modificat', async () => {
+    renderAs(COORDINATOR, '/vizite/noua', {
+      ...coordinatorsRoute,
+      'POST /api/visits': json(400, {
+        error: 'Date invalide',
+        details: [
+          // ordinea de la server nu contează: focusul merge pe primul câmp din pagină
+          { field: 'departureAt', message: 'Câmp obligatoriu' },
+          { field: 'patient.treatment', message: 'Câmp obligatoriu' },
+        ],
+      }),
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Înregistrează vizita' }))
+
+    const treatment = screen.getByLabelText('Tratament')
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(treatment).toHaveFocus()
+    expect(treatment).toHaveAttribute('aria-invalid', 'true')
+
+    await user.type(treatment, 'Implant')
+    expect(treatment).toHaveAttribute('aria-invalid', 'false')
+    expect(treatment).not.toHaveAccessibleDescription('Câmp obligatoriu')
+    // celelalte erori rămân
+    expect(screen.getByLabelText('Plecare (data și ora)')).toHaveAccessibleDescription('Câmp obligatoriu')
+  })
+
+  it('tratamentul însoțitorului gol: eroarea apare la câmpul lui', async () => {
+    const fetchMock = renderAs(COORDINATOR, '/vizite/noua', {
+      ...coordinatorsRoute,
+      'POST /api/visits': json(400, {
+        error: 'Date invalide',
+        details: [{ field: 'companion.treatment', message: 'Câmp obligatoriu' }],
+      }),
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByLabelText('Vine cu însoțitor'))
+    await user.click(screen.getByLabelText('Însoțitorul are și el tratament'))
+    await user.click(screen.getByRole('button', { name: 'Înregistrează vizita' }))
+
+    const companionTreatment = screen.getByLabelText('Tratament însoțitor')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Verifică câmpurile marcate cu roșu.')
+    expect(companionTreatment).toHaveAccessibleDescription('Câmp obligatoriu')
+    // câmpul gol se trimite (ca serverul să-l poată respinge), nu se pierde în tăcere
+    expect(sentBody(fetchMock, 'POST', '/api/visits').companion.treatment).toBe('')
+  })
+
+  it.each([
+    [
+      'eroare pe un câmp pe care formularul nu-l are -> mesajul ei apare jos',
+      json(400, { error: 'Date invalide', details: [{ field: 'companion', message: 'Câmp necunoscut: extra' }] }),
+      'Câmp necunoscut: extra',
+    ],
+    ['400 fără detalii -> mesajul serverului', json(400, { error: 'Date invalide', details: [] }), 'Date invalide'],
+    ['eroare de server (500)', json(500, { error: 'Eroare internă' }), 'Eroare internă'],
+    [
+      'serverul nu răspunde',
+      () => {
+        throw new TypeError('Failed to fetch')
+      },
+      'Serverul nu răspunde',
+    ],
+  ])('%s', async (_name, response, message) => {
+    renderAs(COORDINATOR, '/vizite/noua', { ...coordinatorsRoute, 'POST /api/visits': response })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Înregistrează vizita' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(message)
+    expect(alert).not.toHaveTextContent('Verifică câmpurile marcate cu roșu.')
+  })
+
+  it('cât se salvează: „Înregistrează” și „Renunță” sunt blocate', async () => {
+    let finish
+    renderAs(COORDINATOR, '/vizite/noua', {
+      ...coordinatorsRoute,
+      'POST /api/visits': () => new Promise((resolve) => (finish = resolve)),
+    })
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Înregistrează vizita' }))
+
+    expect(screen.getByRole('button', { name: /Se salvează/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Renunță' })).toBeDisabled()
+
+    finish(json(500, { error: 'Eroare internă' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Eroare internă')
+    expect(screen.getByRole('button', { name: 'Renunță' })).toBeEnabled()
+  })
+
   it('câmpurile obligatorii sunt marcate (și pentru cititoarele de ecran)', async () => {
     renderAs(COORDINATOR, '/vizite/noua', coordinatorsRoute)
     const user = userEvent.setup()

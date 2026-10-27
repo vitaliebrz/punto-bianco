@@ -27,11 +27,12 @@ export default function AccommodationsPage() {
   const { user } = useAuth()
   const readOnly = isReadOnly(user.role)
   const { data: requests, error, loading, reload, setData } = useApiData('/api/accommodations')
-  const [busyId, setBusyId] = useState(null)
+  // Cererile care se salvează acum (fiecare card își blochează butonul separat, ca la Back office)
+  const [busyIds, setBusyIds] = useState(() => new Set())
   const [actionError, setActionError] = useState('')
 
   async function markReserved(request) {
-    setBusyId(request.id)
+    setBusyIds((ids) => new Set(ids).add(request.id))
     setActionError('')
     try {
       const updated = await apiFetch(`/api/accommodations/${request.id}/status`, {
@@ -44,7 +45,11 @@ export default function AccommodationsPage() {
       // 409 = cererea a fost deja rezervată de altcineva: arătăm starea reală
       if (err.status === 409) reload()
     } finally {
-      setBusyId(null)
+      setBusyIds((ids) => {
+        const next = new Set(ids)
+        next.delete(request.id)
+        return next
+      })
     }
   }
 
@@ -78,7 +83,7 @@ export default function AccommodationsPage() {
       {requests && requests.length > 0 && (
         <ul className="flex flex-col gap-3">
           {requests.map((request) => {
-            const busy = busyId === request.id
+            const busy = busyIds.has(request.id)
             return (
               <li
                 key={request.id}

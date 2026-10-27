@@ -19,8 +19,11 @@ const optionalText = (max) =>
     .transform((value) => value || null);
 
 // Dată + oră cu fus orar (ex. "2026-10-28T14:30:00.000Z" sau "...+02:00") -> Date.
-const dateTime = z.iso
-  .datetime({ offset: true, message: 'Dată și oră invalide' })
+// Câmpul gol primește „Câmp obligatoriu”, nu „invalide”.
+const dateTime = z
+  .string({ message: 'Câmp obligatoriu' })
+  .min(1, 'Câmp obligatoriu')
+  .pipe(z.iso.datetime({ offset: true, message: 'Dată și oră invalide' }))
   .transform((value) => new Date(value));
 
 const personFields = {
@@ -34,11 +37,19 @@ const patientSchema = z
   .strict();
 
 // Însoțitorul: dacă are tratament, completează aceleași câmpuri ca pacientul.
+// treatment lipsă (sau null) = fără tratament; trimis ca text = obligatoriu, ca la pacient
+// (altfel bifa „are tratament” cu câmpul gol s-ar salva în tăcere ca „fără tratament”).
 const companionSchema = z
-  .object({ ...personFields, treatment: optionalText(2000) })
+  .object({
+    ...personFields,
+    treatment: requiredText(2000)
+      .nullish()
+      .transform((value) => value ?? null),
+  })
   .strict()
   .superRefine((companion, ctx) => {
-    if (companion.availability && !companion.treatment) {
+    // doar când tratamentul lipsește; un tratament trimis gol are deja eroarea lui
+    if (companion.availability && companion.treatment == null) {
       ctx.addIssue({
         code: 'custom',
         path: ['availability'],

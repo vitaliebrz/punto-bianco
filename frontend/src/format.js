@@ -52,6 +52,17 @@ export function clinicLocalToIso(localValue) {
   if (!match) return ''
   const [, year, month, day, hour, minute] = match.map(Number)
   const wallClockAsUtc = Date.UTC(year, month - 1, day, hour, minute)
+  // Date.UTC „repară” valorile imposibile (luna 13 -> ianuarie anul următor); le respingem
+  const check = new Date(wallClockAsUtc)
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day ||
+    check.getUTCHours() !== hour ||
+    check.getUTCMinutes() !== minute
+  ) {
+    return ''
+  }
   // Primul calcul folosește diferența de oră din jurul momentului; al doilea o corectează
   // dacă momentul cade de cealaltă parte a schimbării orei de vară / iarnă.
   let instant = wallClockAsUtc - clinicOffsetMs(new Date(wallClockAsUtc))

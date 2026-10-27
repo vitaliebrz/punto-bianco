@@ -20,6 +20,13 @@ describe('clinicLocalToIso: ora din formular e ora clinicii', () => {
     expect(clinicLocalToIso('mâine')).toBe('')
   })
 
+  it.each(['2026-13-01T10:00', '2026-02-30T10:00', '2026-11-02T24:00', '2026-11-02T14:60', '2026-13-45T99:99'])(
+    'dată sau oră imposibilă %s -> "" (nu se mută în altă zi)',
+    (local) => {
+      expect(clinicLocalToIso(local)).toBe('')
+    },
+  )
+
   it('ora salvată se afișează exact cum a fost introdusă (și în jurul schimbării orei)', () => {
     for (const local of ['2026-11-02T14:30', '2026-07-10T10:00', '2026-03-29T04:30', '2026-10-25T05:00']) {
       const iso = clinicLocalToIso(local)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bed } from '@phosphor-icons/react/Bed'
 import { CalendarBlank } from '@phosphor-icons/react/CalendarBlank'
 import { CircleNotch } from '@phosphor-icons/react/CircleNotch'
@@ -23,7 +23,8 @@ import { APARTMENT_LABELS, TRANSFER_DIRECTION_LABELS } from '../labels'
 import { useApiData } from '../useApiData'
 import { buildVisitPayload, errorsByField, initialVisitForm } from '../visitForm'
 
-// Câmpurile cunoscute de formular; o eroare pe alt câmp apare în mesajul de sus
+// Câmpurile cunoscute de formular, în ordinea din pagină (după 400 se mută focusul pe primul greșit).
+// O eroare pe alt câmp apare în mesajul de jos, lângă butoane.
 const KNOWN_FIELDS = [
   'patient.firstName',
   'patient.lastName',
@@ -35,10 +36,10 @@ const KNOWN_FIELDS = [
   'companion.availability',
   'arrivalAt',
   'departureAt',
-  'coordinatorId',
   'accommodation.apartmentType',
   'accommodation.freeDays',
   'transfer.direction',
+  'coordinatorId',
 ]
 
 const APARTMENT_OPTIONS = Object.entries(APARTMENT_LABELS).map(([value, label]) => ({ value, label }))
@@ -57,11 +58,38 @@ export default function NewVisitPage() {
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Primul câmp greșit după trimitere ({ name }: obiect nou la fiecare trimitere, ca efectul să ruleze iar)
+  const [firstInvalid, setFirstInvalid] = useState(null)
+  const formRef = useRef(null)
+
+  // Pe telefon eroarea poate fi mult mai sus de buton: derulăm la primul câmp greșit și îl selectăm
+  useEffect(() => {
+    if (!firstInvalid) return
+    const form = formRef.current
+    const field =
+      form?.querySelector(`[id="${firstInvalid.name}"]`) ?? form?.querySelector(`[name="${firstInvalid.name}"]`)
+    field?.scrollIntoView?.({ block: 'center' })
+    field?.focus({ preventScroll: true })
+  }, [firstInvalid])
+
+  // Eroarea unui câmp dispare când e modificat
+  const clearError = (name) =>
+    setErrors((current) => {
+      if (!(name in current)) return current
+      const next = { ...current }
+      delete next[name]
+      return next
+    })
 
   // setField('arrivalAt', valoare) / setSectionField('patient', 'firstName', valoare)
-  const setField = (name, value) => setForm((current) => ({ ...current, [name]: value }))
-  const setSectionField = (section, key, value) =>
+  const setField = (name, value) => {
+    setForm((current) => ({ ...current, [name]: value }))
+    clearError(name)
+  }
+  const setSectionField = (section, key, value) => {
     setForm((current) => ({ ...current, [section]: { ...current[section], [key]: value } }))
+    clearError(`${section}.${key}`)
+  }
 
   // Proprietățile comune ale unui câmp text dintr-o secțiune
   const text = (section, key) => ({
@@ -83,10 +111,14 @@ export default function NewVisitPage() {
     } catch (err) {
       const fieldErrors = errorsByField(err.details)
       setErrors(fieldErrors)
-      const hasUnknown = Object.keys(fieldErrors).some((field) => !KNOWN_FIELDS.includes(field))
-      setFormError(
-        err.details && !hasUnknown ? 'Verifică câmpurile marcate cu roșu.' : err.message,
-      )
+      const invalidFields = KNOWN_FIELDS.filter((field) => fieldErrors[field])
+      // Erorile pe câmpuri pe care formularul nu le are nu se pot arăta lângă câmp: le arătăm jos
+      const otherMessages = Object.entries(fieldErrors)
+        .filter(([field]) => !KNOWN_FIELDS.includes(field))
+        .map(([, message]) => message)
+      const messages = [invalidFields.length > 0 && 'Verifică câmpurile marcate cu roșu.', ...otherMessages]
+      setFormError(messages.filter(Boolean).join(' ') || err.message)
+      if (invalidFields.length > 0) setFirstInvalid({ name: invalidFields[0] })
       setSubmitting(false)
     }
   }
@@ -98,7 +130,7 @@ export default function NewVisitPage() {
         description="După salvare, Back office-ul și managerul de cazări sunt anunțați automat."
       />
 
-      <form className="flex max-w-3xl flex-col gap-5" onSubmit={handleSubmit} noValidate>
+      <form ref={formRef} className="flex max-w-3xl flex-col gap-5" onSubmit={handleSubmit} noValidate>
         <p className="text-sm text-ink-500">
           Câmpurile marcate cu <span className="font-bold text-red-600">*</span> sunt obligatorii.
         </p>
@@ -280,7 +312,7 @@ export default function NewVisitPage() {
             </p>
           )}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={() => navigate('/vizite')}>
+            <Button variant="secondary" disabled={submitting} onClick={() => navigate('/vizite')}>
               Renunță
             </Button>
             <Button type="submit" disabled={submitting} className="sm:min-w-52">

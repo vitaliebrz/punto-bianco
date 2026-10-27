@@ -33,11 +33,13 @@ export default function BackOfficePage() {
   const { user } = useAuth()
   const readOnly = isReadOnly(user.role)
   const { data: visits, error, loading, reload, setData } = useApiData('/api/visits')
-  const [busyId, setBusyId] = useState(null)
+  // Vizitele care se salvează acum: fiecare card își blochează butonul separat, așa că
+  // un clic pe alt card nu deblochează butonul primului (care s-ar putea trimite de două ori).
+  const [busyIds, setBusyIds] = useState(() => new Set())
   const [actionError, setActionError] = useState('')
 
   async function changeStatus(visit, status) {
-    setBusyId(visit.id)
+    setBusyIds((ids) => new Set(ids).add(visit.id))
     setActionError('')
     try {
       const updated = await apiFetch(`/api/visits/${visit.id}/back-office-status`, {
@@ -50,7 +52,11 @@ export default function BackOfficePage() {
       // 409 = altcineva a schimbat deja statusul: arătăm starea reală
       if (err.status === 409) reload()
     } finally {
-      setBusyId(null)
+      setBusyIds((ids) => {
+        const next = new Set(ids)
+        next.delete(visit.id)
+        return next
+      })
     }
   }
 
@@ -86,7 +92,7 @@ export default function BackOfficePage() {
         <ul className="flex flex-col gap-3">
           {visits.map((visit) => {
             const action = NEXT_ACTION[visit.backOfficeStatus]
-            const busy = busyId === visit.id
+            const busy = busyIds.has(visit.id)
             const treated = visit.patients.filter((person) => person.treatment)
             return (
               <li
