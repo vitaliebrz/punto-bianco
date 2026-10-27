@@ -89,6 +89,7 @@ async function request(key, method, path, { token, body, allowConflict } = {}) {
 const shared = {
   coordinatorIds: [],
   visitIds: [], // toate vizitele văzute (pentru „detalii”)
+  accommodationVisitIds: [], // vizitele cu cazare: singurele ale căror detalii le vede Managerul de cazări
   testVisits: [], // { id, status } create de test, pentru Back office
   testAccommodations: [], // { id, status } create de test, pentru Manager cazări
 };
@@ -130,8 +131,18 @@ const visitDetails = (user) => {
   if (shared.visitIds.length === 0) return listVisits(user);
   return request('GET /api/visits/:id', 'GET', `/api/visits/${pick(shared.visitIds)}`, { token: user.token });
 };
-const listAccommodations = (user) =>
-  request('GET /api/accommodations', 'GET', '/api/accommodations', { token: user.token });
+const listAccommodations = async (user) => {
+  const { data } = await request('GET /api/accommodations', 'GET', '/api/accommodations', { token: user.token });
+  if (Array.isArray(data) && shared.accommodationVisitIds.length === 0) {
+    shared.accommodationVisitIds.push(...data.map((accommodation) => accommodation.visit.id));
+  }
+};
+// Managerul de cazări deschide detaliile din pagina Cazări, deci doar vizite CU cazare
+// (pentru celelalte, API-ul răspunde corect 404: detaliile conțin tratamentul pacienților).
+const accommodationVisitDetails = (user) => {
+  if (shared.accommodationVisitIds.length === 0) return listAccommodations(user);
+  return request('GET /api/visits/:id', 'GET', `/api/visits/${pick(shared.accommodationVisitIds)}`, { token: user.token });
+};
 const transfers = (user) => request('GET /api/transfers', 'GET', `/api/transfers?${weekRange()}`, { token: user.token });
 const coordinators = (user) => request('GET /api/users/coordinators', 'GET', '/api/users/coordinators', { token: user.token });
 
@@ -143,7 +154,10 @@ async function createVisit(user) {
   if (status === 201 && data) {
     shared.visitIds.push(data.id);
     shared.testVisits.push({ id: data.id, status: data.backOfficeStatus });
-    if (data.accommodation) shared.testAccommodations.push({ id: data.accommodation.id, status: data.accommodation.status });
+    if (data.accommodation) {
+      shared.accommodationVisitIds.push(data.id);
+      shared.testAccommodations.push({ id: data.accommodation.id, status: data.accommodation.status });
+    }
   }
 }
 
@@ -174,7 +188,7 @@ async function reserveStep(user) {
 const ACTIONS = {
   COORDONATOR: [[listVisits, 3], [coordinators, 1], [visitDetails, 2], ...(WRITES ? [[createVisit, 2]] : [])],
   BACK_OFFICE: [[listVisits, 3], [visitDetails, 1], ...(WRITES ? [[backOfficeStep, 2]] : [])],
-  MANAGER_CAZARI: [[listAccommodations, 3], [visitDetails, 1], ...(WRITES ? [[reserveStep, 2]] : [])],
+  MANAGER_CAZARI: [[listAccommodations, 3], [accommodationVisitDetails, 1], ...(WRITES ? [[reserveStep, 2]] : [])],
   SOFER: [[transfers, 1]],
   CONTABIL: [[listVisits, 2], [listAccommodations, 1], [transfers, 1], [visitDetails, 1]],
   CONTROL_CALITATE: [[listVisits, 2], [listAccommodations, 1], [transfers, 1], [visitDetails, 1]],
