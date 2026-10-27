@@ -10,6 +10,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   3. [Code review, reparații și teste automate](planuri/03-code-review-si-teste.md)
   4. [Fluxul vizitei: înregistrare, notificări, ecrane pe roluri](planuri/04-fluxul-vizitei.md)
   5. [Design: brand, Tailwind, redesign complet](planuri/05-design-brand.md)
+  6. [Test de încărcare: 50 de utilizatori în același timp](planuri/06-test-incarcare.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
@@ -101,7 +102,8 @@ npx prisma studio           # interfață în browser pentru tabelele din baza d
 
 ```powershell
 cd backend
-npm test            # 213 teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
+npm test            # 216 teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
+npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
 npm test            # 46 de teste: login, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
