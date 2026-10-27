@@ -1,6 +1,6 @@
 // Rutele de gestionare a utilizatorilor, prin aplicația reală (HTTP), cu baza de date simulată:
 // rulează și în CI. Fluxul pe baza reală e în db-users.test.js.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
@@ -9,16 +9,29 @@ import { createApp } from '../src/app.js';
 
 const ADMIN = { id: 1, email: 'admin@puntobianco.demo', fullName: 'Elena Popescu', role: 'ADMIN', active: true };
 
-const db = vi.hoisted(() => ({ create: null, update: null }));
-vi.mock('../src/lib/prisma.js', () => ({
-  default: {
-    user: {
-      findUnique: async ({ where }) => (where.id === 1 ? ADMIN : null),
-      create: (args) => db.create(args),
-      update: (args) => db.update(args),
+// takenEmails: emailurile deja folosite; transaction: opțiunile ultimei tranzacții (nivelul de izolare)
+const db = vi.hoisted(() => ({ create: null, update: null, count: null, takenEmails: [], transaction: null }));
+vi.mock('../src/lib/prisma.js', () => {
+  const user = {
+    findUnique: async ({ where }) => {
+      if (where.id === 1) return ADMIN;
+      if (where.email) return db.takenEmails.includes(where.email) ? { id: 99 } : null;
+      return null;
     },
-  },
-}));
+    create: (args) => db.create(args),
+    update: (args) => db.update(args),
+    count: (args) => db.count(args),
+  };
+  return {
+    default: {
+      user,
+      $transaction: async (work, options) => {
+        db.transaction = options;
+        return work({ user });
+      },
+    },
+  };
+});
 
 const prismaError = (code) => new Prisma.PrismaClientKnownRequestError('eroare simulată', { code, clientVersion: 'test' });
 const adminToken = jwt.sign({ role: 'ADMIN' }, process.env.JWT_SECRET, { subject: '1' });
@@ -31,6 +44,14 @@ beforeEach(() => {
   app = createApp();
   db.create = vi.fn(async ({ data }) => ({ id: 20, email: data.email, fullName: data.fullName, role: data.role, active: true }));
   db.update = vi.fn(async ({ where, data }) => ({ ...ADMIN, id: where.id, role: 'SOFER', ...data }));
+  db.count = vi.fn(async () => 1);
+  db.takenEmails = [];
+  db.transaction = null;
+});
+
+// Spionii (ex. console.error ascuns într-un test) nu rămân activi în testele următoare
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('POST /api/users', () => {
@@ -47,7 +68,18 @@ describe('POST /api/users', () => {
     expect(select).not.toHaveProperty('passwordHash');
   });
 
-  it('email deja folosit -> 409, cu eroarea la câmpul email', async () => {
+  it('email deja folosit -> 409 la câmpul email, fără criptarea parolei (bcrypt e lent)', async () => {
+    db.takenEmails = ['maria.lungu@puntobianco.demo'];
+    const hash = vi.spyOn(bcrypt, 'hash');
+    const res = await asAdmin(request(app).post('/api/users')).send(NEW_USER);
+
+    expect(res.status).toBe(409);
+    expect(res.body.details).toEqual([{ field: 'email', message: 'Există deja un cont cu acest email' }]);
+    expect(hash).not.toHaveBeenCalled();
+    expect(db.create).not.toHaveBeenCalled();
+  });
+
+  it('două cereri simultane cu același email: a doua e oprită de unicitatea din bază -> 409', async () => {
     db.create.mockRejectedValue(prismaError('P2002'));
     const res = await asAdmin(request(app).post('/api/users')).send(NEW_USER);
 
@@ -85,6 +117,39 @@ describe('PATCH /api/users/:id/active', () => {
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Nu îți poți dezactiva propriul cont' });
     expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('alt Admin poate fi dezactivat cât timp rămâne cel puțin un Admin activ', async () => {
+    db.update.mockImplementation(async ({ where, data }) => ({ ...ADMIN, id: where.id, ...data }));
+    db.count.mockResolvedValue(1);
+    const res = await asAdmin(request(app).patch('/api/users/7/active')).send({ active: false });
+
+    expect(res.status).toBe(200);
+    expect(db.count).toHaveBeenCalledWith({ where: { role: 'ADMIN', active: true } });
+    // izolarea care oprește două dezactivări simultane (Admini care se dezactivează unul pe altul)
+    expect(db.transaction).toEqual({ isolationLevel: 'Serializable' });
+  });
+
+  it('ultimul Admin activ nu poate fi dezactivat -> 400 (schimbarea e anulată)', async () => {
+    db.update.mockImplementation(async ({ where, data }) => ({ ...ADMIN, id: where.id, ...data }));
+    db.count.mockResolvedValue(0);
+    const res = await asAdmin(request(app).patch('/api/users/7/active')).send({ active: false });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Trebuie să rămână cel puțin un Admin activ' });
+  });
+
+  it('dezactivarea unui cont care nu e Admin nu numără Adminii', async () => {
+    await asAdmin(request(app).patch('/api/users/6/active')).send({ active: false });
+    expect(db.count).not.toHaveBeenCalled();
+  });
+
+  it('două dezactivări simultane oprite de bază (P2034) -> 409, „reîncarcă lista”', async () => {
+    db.update.mockRejectedValue(prismaError('P2034'));
+    const res = await asAdmin(request(app).patch('/api/users/7/active')).send({ active: false });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain('Reîncarcă lista');
   });
 
   it('utilizator inexistent -> 404; id invalid -> 400', async () => {

@@ -6,12 +6,10 @@ import { IdentificationBadge } from '@phosphor-icons/react/IdentificationBadge'
 import { UserCheck } from '@phosphor-icons/react/UserCheck'
 import { UserMinus } from '@phosphor-icons/react/UserMinus'
 import { UserPlus } from '@phosphor-icons/react/UserPlus'
-import { Users } from '@phosphor-icons/react/Users'
 import { WarningCircle } from '@phosphor-icons/react/WarningCircle'
 import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
 import Button from '../components/Button'
-import EmptyState from '../components/EmptyState'
 import FormField from '../components/FormField'
 import Listbox from '../components/Listbox'
 import Meta from '../components/Meta'
@@ -27,6 +25,10 @@ import { errorsByField } from '../visitForm'
 const EMPTY_FORM = { fullName: '', email: '', role: '', password: '' }
 const FORM_FIELDS = Object.keys(EMPTY_FORM)
 const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }))
+
+// Ordinea listei, ca pe server: întâi conturile active, apoi după nume. Se aplică la fiecare afișare,
+// ca un cont dezactivat / creat aici să ajungă direct la locul lui.
+const byStatusAndName = (a, b) => Number(b.active) - Number(a.active) || a.fullName.localeCompare(b.fullName, 'ro')
 
 // Admin: lista utilizatorilor, cont nou, dezactivare / reactivare (fără ștergere: vizitele păstrează
 // coordonatorul și autorul). Un cont dezactivat pierde accesul imediat, chiar dacă e conectat.
@@ -86,7 +88,9 @@ export default function UsersPage() {
       const user = await apiFetch('/api/users', { method: 'POST', body: form })
       closeForm()
       setCreated(user)
-      reload() // lista, în ordinea de la server (lista veche rămâne pe ecran până vine cea nouă)
+      // Contul nou vine în răspuns: îl adăugăm direct. O reîncărcare a listei ar putea sosi după o
+      // dezactivare făcută între timp și ar readuce pe ecran starea veche.
+      setData((list) => (list ? [...list, user] : list))
     } catch (err) {
       const fieldErrors = errorsByField(err.details)
       setErrors(fieldErrors)
@@ -210,11 +214,10 @@ export default function UsersPage() {
 
       <PageState loading={loading} error={error} onRetry={retryable ? reload : undefined} />
 
-      {users && users.length === 0 && <EmptyState icon={Users} title="Nu există utilizatori." />}
-
-      {users && users.length > 0 && (
+      {/* Lista nu e niciodată goală: conține mereu Admin-ul conectat */}
+      {users && (
         <ul aria-label="Lista utilizatorilor" className="flex flex-col gap-3">
-          {users.map((user) => {
+          {[...users].sort(byStatusAndName).map((user) => {
             const isMe = user.id === me.id
             const busy = busyIds.has(user.id)
             return (

@@ -36,11 +36,20 @@ router.get('/', requireRole(), async (req, res) => {
   res.json(users);
 });
 
+const EMAIL_TAKEN = {
+  error: 'Date invalide',
+  details: [{ field: 'email', message: 'Există deja un cont cu acest email' }],
+};
+
 // Cont nou, cu parola inițială aleasă de Admin (salvată doar ca hash bcrypt)
 router.post('/', requireRole(), validate(createUserSchema), async (req, res) => {
   const { fullName, email, role, password } = req.body;
-  const passwordHash = await bcrypt.hash(password, 10);
 
+  // Întâi emailul: bcrypt e intenționat lent, nu-l rulăm pentru un cont care oricum nu se creează
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (existing) return res.status(409).json(EMAIL_TAKEN);
+
+  const passwordHash = await bcrypt.hash(password, 10);
   try {
     const user = await prisma.user.create({
       data: { fullName, email, role, passwordHash },
@@ -48,16 +57,15 @@ router.post('/', requireRole(), validate(createUserSchema), async (req, res) => 
     });
     res.status(201).json(user);
   } catch (err) {
-    // Emailul e unic în bază: așa e corect și când două cereri cu același email vin simultan
-    if (isPrismaError(err, 'P2002')) {
-      return res.status(409).json({
-        error: 'Date invalide',
-        details: [{ field: 'email', message: 'Există deja un cont cu acest email' }],
-      });
-    }
+    // Două cereri simultane cu același email trec amândouă de verificarea de mai sus;
+    // emailul e unic în bază, deci a doua e oprită aici
+    if (isPrismaError(err, 'P2002')) return res.status(409).json(EMAIL_TAKEN);
     throw err;
   }
 });
+
+// Aruncată în tranzacție când schimbarea ar lăsa aplicația fără niciun Admin activ (anulează schimbarea)
+class LastAdminError extends Error {}
 
 // Dezactivare / reactivare. Un cont dezactivat pierde accesul imediat (requireAuth citește
 // utilizatorul din bază la fiecare cerere); vizitele lui rămân neschimbate.
@@ -66,16 +74,34 @@ router.patch('/:id/active', requireRole(), validate(userActiveSchema), async (re
   if (!id) return res.status(400).json({ error: 'Id invalid' });
 
   const { active } = req.body;
-  // Altfel aplicația ar putea rămâne fără niciun Admin care să reactiveze conturile
   if (id === req.user.id && !active) {
     return res.status(400).json({ error: 'Nu îți poți dezactiva propriul cont' });
   }
 
   try {
-    const user = await prisma.user.update({ where: { id }, data: { active }, select: USER_FIELDS });
+    // Trebuie să rămână cel puțin un Admin activ, care să poată reactiva conturile.
+    // Serializable: doi Admini care se dezactivează unul pe altul în același timp ar vedea fiecare
+    // „încă un Admin activ” și ar reuși amândoi; așa, baza oprește una dintre tranzacții (P2034).
+    const user = await prisma.$transaction(
+      async (tx) => {
+        const updated = await tx.user.update({ where: { id }, data: { active }, select: USER_FIELDS });
+        if (!active && updated.role === 'ADMIN') {
+          const activeAdmins = await tx.user.count({ where: { role: 'ADMIN', active: true } });
+          if (activeAdmins === 0) throw new LastAdminError();
+        }
+        return updated;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
     res.json(user);
   } catch (err) {
+    if (err instanceof LastAdminError) {
+      return res.status(400).json({ error: 'Trebuie să rămână cel puțin un Admin activ' });
+    }
     if (isPrismaError(err, 'P2025')) return res.status(404).json({ error: 'Utilizatorul nu există' });
+    if (isPrismaError(err, 'P2034')) {
+      return res.status(409).json({ error: 'Conturile au fost schimbate în același timp. Reîncarcă lista.' });
+    }
     throw err;
   }
 });

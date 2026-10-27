@@ -210,7 +210,9 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {/* Toată lățimea de lângă meniu (fără coloană îngustă centrată pe ecranele mari);
+            formularele își păstrează lățimea lor, aliniate la stânga */}
+        <main className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8 2xl:px-12">
           <Outlet />
         </main>
       </div>

@@ -11,8 +11,13 @@ const ANDREI = account({ ...USERS.sofer, active: false })
 const NEW = account({ id: 20, email: 'maria.lungu@puntobianco.demo', fullName: 'Maria Lungu', role: 'BACK_OFFICE' })
 
 // Rândul unui utilizator din listă (numele apare și în bara laterală, la utilizatorul conectat)
-const rowOf = (name) =>
-  within(screen.getByRole('list', { name: 'Lista utilizatorilor' })).getByText(name).closest('li')
+const userList = () => screen.getByRole('list', { name: 'Lista utilizatorilor' })
+const rowOf = (name) => within(userList()).getByText(name).closest('li')
+// Numele din listă, în ordinea afișării (fără „(tu)”)
+const listedNames = () =>
+  within(userList())
+    .getAllByRole('listitem')
+    .map((row) => row.querySelector('p').firstChild.textContent)
 
 describe('pagina Utilizatori', () => {
   it('lista: rol, stare; contul propriu are „(tu)” și niciun buton', async () => {
@@ -34,14 +39,10 @@ describe('pagina Utilizatori', () => {
     expect(within(mine).queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('cont nou: trimite exact datele din formular, arată mesajul și contul în listă', async () => {
-    let created = false
+  it('cont nou: trimite exact datele din formular, arată mesajul și contul în listă (fără reîncărcarea listei)', async () => {
     const fetchMock = renderAs(USERS.admin, '/utilizatori', {
-      'GET /api/users': () => json(200, created ? [ADMIN, IRINA, NEW] : [ADMIN, IRINA]),
-      'POST /api/users': () => {
-        created = true
-        return json(201, NEW)
-      },
+      'GET /api/users': json(200, [ADMIN, IRINA]),
+      'POST /api/users': json(201, NEW),
     })
     const user = userEvent.setup()
 
@@ -70,6 +71,27 @@ describe('pagina Utilizatori', () => {
       role: 'BACK_OFFICE',
       password: 'Parola123',
     })
+    // contul vine din răspunsul POST; o reîncărcare a listei ar putea suprascrie o schimbare mai nouă
+    const listLoads = fetchMock.mock.calls.filter(
+      ([url, options]) => (options?.method ?? 'GET') === 'GET' && new URL(url).pathname === '/api/users',
+    )
+    expect(listLoads).toHaveLength(1)
+    // ordinea: activii după nume (Elena, Irina, Maria)
+    expect(listedNames()).toEqual(['Elena Popescu', 'Irina Lungu', 'Maria Lungu'])
+  })
+
+  it('un cont dezactivat trece imediat la sfârșit, în grupul conturilor inactive', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderAs(USERS.admin, '/utilizatori', {
+      'GET /api/users': json(200, [ADMIN, IRINA, ANDREI]),
+      'PATCH /api/users/4/active': json(200, { ...IRINA, active: false }),
+    })
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Dezactivează contul lui Irina Lungu' }))
+
+    expect(await within(rowOf('Irina Lungu')).findByText('Inactiv')).toBeInTheDocument()
+    // activii întâi, apoi inactivii după nume: Andrei înaintea Irinei
+    expect(listedNames()).toEqual(['Elena Popescu', 'Andrei Cojocaru', 'Irina Lungu'])
   })
 
   it('email deja folosit (409): eroarea apare la câmpul Email și dispare când e corectat', async () => {
