@@ -1,9 +1,21 @@
 import { useState } from 'react'
+import { AirplaneLanding } from '@phosphor-icons/react/AirplaneLanding'
+import { AirplaneTakeoff } from '@phosphor-icons/react/AirplaneTakeoff'
+import { Bed } from '@phosphor-icons/react/Bed'
+import { Buildings } from '@phosphor-icons/react/Buildings'
+import { CheckCircle } from '@phosphor-icons/react/CheckCircle'
+import { CircleNotch } from '@phosphor-icons/react/CircleNotch'
+import { IdentificationBadge } from '@phosphor-icons/react/IdentificationBadge'
 import { Link } from 'react-router-dom'
 import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
-import PageState from '../components/PageState'
+import { cn } from '../cn'
+import Button from '../components/Button'
+import EmptyState from '../components/EmptyState'
+import PageHeader from '../components/PageHeader'
+import PageState, { ErrorState } from '../components/PageState'
 import StatusBadge from '../components/StatusBadge'
+import StatusSummary from '../components/StatusSummary'
 import { formatDateTime } from '../format'
 import { APARTMENT_LABELS, peopleNames } from '../labels'
 import { isReadOnly } from '../roles'
@@ -11,6 +23,18 @@ import { useApiData } from '../useApiData'
 
 const costLabel = ({ isFree, freeDays }) =>
   isFree ? `Gratuită ${freeDays} ${freeDays === 1 ? 'zi' : 'zile'}` : 'Contra cost'
+
+const countBy = (requests, status) => requests.filter((request) => request.status === status).length
+
+function Meta({ icon: Icon, label, children }) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <Icon size={18} aria-hidden="true" className="shrink-0 text-ink-400" />
+      <dt className="sr-only">{label}</dt>
+      <dd className="min-w-0 text-[15px] text-ink-800">{children}</dd>
+    </div>
+  )
+}
 
 // Pasul 2 din cerință: cererile de cazare stau „Neprelucrat” până se marchează „Rezervat”
 export default function AccommodationsPage() {
@@ -39,76 +63,103 @@ export default function AccommodationsPage() {
   }
 
   return (
-    <section className="page">
-      <div className="page-header">
-        <h1>Cazări</h1>
-      </div>
-      {readOnly && <p className="readonly-note">Doar vizualizare.</p>}
+    <section className="flex flex-col gap-6">
+      <PageHeader title="Cazări" description="Cererile de cazare, în ordinea datei de sosire." readOnly={readOnly} />
 
-      {actionError && (
-        <p className="alert-error" role="alert">
-          {actionError}
-        </p>
+      {requests && requests.length > 0 && (
+        <StatusSummary
+          items={[
+            { label: 'Neprelucrat', count: countBy(requests, 'NEPRELUCRAT'), tone: 'todo' },
+            { label: 'Rezervat', count: countBy(requests, 'REZERVAT'), tone: 'done' },
+          ]}
+        />
       )}
+
+      {actionError && <ErrorState message={actionError} />}
 
       <PageState loading={loading} error={error} onRetry={reload} />
 
-      {requests && requests.length === 0 && <p className="page-status">Nu există cereri de cazare.</p>}
+      {requests && requests.length === 0 && (
+        <EmptyState
+          icon={Buildings}
+          title="Nu există cereri de cazare."
+          description="Cererile apar aici automat când un coordonator înregistrează o vizită cu cazare."
+        />
+      )}
 
       {requests && requests.length > 0 && (
-        <ul className="card-list">
-          {requests.map((request) => (
-            <li key={request.id} className="card">
-              <div className="card-header">
-                <Link to={`/vizite/${request.visit.id}`} className="card-title">
-                  {peopleNames(request.visit.patients)}
-                </Link>
-                <StatusBadge status={request.status} />
-              </div>
-
-              <dl className="card-details">
-                <div>
-                  <dt>Apartament</dt>
-                  <dd>{APARTMENT_LABELS[request.apartmentType]}</dd>
-                </div>
-                <div>
-                  <dt>Cost</dt>
-                  <dd>{costLabel(request)}</dd>
-                </div>
-                <div>
-                  <dt>Sosire</dt>
-                  <dd>{formatDateTime(request.visit.arrivalAt)}</dd>
-                </div>
-                <div>
-                  <dt>Plecare</dt>
-                  <dd>{formatDateTime(request.visit.departureAt)}</dd>
-                </div>
-                <div>
-                  <dt>Coordonator</dt>
-                  <dd>{request.visit.coordinator.fullName}</dd>
-                </div>
-                {request.reservedAt && (
-                  <div>
-                    <dt>Rezervat la</dt>
-                    <dd>{formatDateTime(request.reservedAt)}</dd>
-                  </div>
-                )}
-              </dl>
-
-              {!readOnly && request.status === 'NEPRELUCRAT' && (
-                <div className="card-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={busyId === request.id}
-                    onClick={() => markReserved(request)}
+        <ul className="flex flex-col gap-3">
+          {requests.map((request) => {
+            const busy = busyId === request.id
+            return (
+              <li
+                key={request.id}
+                className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-card ring-1 ring-ink-200/60 md:flex-row md:gap-6"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-4">
+                  <Link
+                    to={`/vizite/${request.visit.id}`}
+                    className="self-start rounded text-[17px] font-bold text-ink-900 hover:text-mint-700 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none"
                   >
-                    {busyId === request.id ? 'Se salvează…' : 'Marchează rezervat'}
-                  </button>
+                    {peopleNames(request.visit.patients)}
+                  </Link>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-mint-50 px-3 py-2 text-[15px] font-bold text-ink-900 ring-1 ring-mint-100">
+                      <Bed size={20} weight="duotone" aria-hidden="true" className="text-mint-700" />
+                      <span className="sr-only">Apartament: </span>
+                      {APARTMENT_LABELS[request.apartmentType]}
+                    </span>
+                    <span
+                      className={cn(
+                        'rounded-full px-3 py-1 text-[13px] font-medium',
+                        request.isFree ? 'bg-mint-100 text-mint-800' : 'bg-ink-100 text-ink-700',
+                      )}
+                    >
+                      {costLabel(request)}
+                    </span>
+                  </div>
+
+                  <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                    <Meta icon={AirplaneLanding} label="Sosire">
+                      {formatDateTime(request.visit.arrivalAt)}
+                    </Meta>
+                    <Meta icon={AirplaneTakeoff} label="Plecare">
+                      {formatDateTime(request.visit.departureAt)}
+                    </Meta>
+                    <Meta icon={IdentificationBadge} label="Coordonator">
+                      {request.visit.coordinator.fullName}
+                    </Meta>
+                  </dl>
                 </div>
-              )}
-            </li>
-          ))}
+
+                {/* Statusul și butonul: jos pe telefon, coloana din dreapta pe ecran lat */}
+                <div className="flex flex-col gap-3 border-t border-ink-100 pt-4 md:w-52 md:shrink-0 md:items-end md:border-t-0 md:border-l md:pt-0 md:pl-6">
+                  <StatusBadge status={request.status} className="self-start md:self-end" />
+                  {request.reservedAt && (
+                    <p className="text-[13px] text-ink-500 md:text-right">
+                      Rezervat la <time dateTime={request.reservedAt}>{formatDateTime(request.reservedAt)}</time>
+                    </p>
+                  )}
+                  {!readOnly && request.status === 'NEPRELUCRAT' && (
+                    <Button className="w-full md:mt-auto" disabled={busy} onClick={() => markReserved(request)}>
+                      {busy ? (
+                        <>
+                          <CircleNotch size={18} weight="bold" aria-hidden="true" className="animate-spin" />
+                          Se salvează…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={18} weight="bold" aria-hidden="true" />
+                          Marchează rezervat
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
