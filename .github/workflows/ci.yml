@@ -24,18 +24,23 @@ jobs:
         working-directory: backend
     env:
       # Doar pentru teste; secretele reale nu se pun pe GitHub.
-      # Fără DATABASE_URL, testele de integrare (db.test.js) se sar automat.
+      # Fără o bază reală (SEED_PASSWORD, DB_WRITE_HOST), testele de integrare se sar automat.
       JWT_SECRET: ci-test-secret
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
       - run: npm ci
+      # Schema Prisma corectă (adresele sunt de formă: validarea nu se conectează la bază)
+      - run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
       - run: npx prisma generate
       - run: npm test
 
@@ -50,11 +55,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
-      - run: npm run lint
+      # și avertismentele opresc CI-ul (altfel s-ar aduna neobservate)
+      - run: npm run lint -- --deny-warnings
       - run: npm test
       - run: npm run build
