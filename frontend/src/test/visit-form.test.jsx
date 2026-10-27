@@ -32,7 +32,8 @@ describe('buildVisitPayload', () => {
       transfer: null,
       coordinatorId: 2,
     })
-    expect(payload.arrivalAt).toBe(new Date('2026-11-02T14:30').toISOString())
+    // ora din formular e ora clinicii (Chișinău, iarna UTC+2), oricare ar fi fusul calculatorului
+    expect(payload.arrivalAt).toBe('2026-11-02T12:30:00.000Z')
   })
 
   it('însoțitor fără tratament: doar numele; cazare contra cost: fără zile', () => {
@@ -92,8 +93,8 @@ describe('formularul „Vizită nouă”', () => {
     expect(sentBody(fetchMock, 'POST', '/api/visits')).toEqual({
       patient: { firstName: 'Marco', lastName: 'Rossi', treatment: 'Implant', availability: '' },
       companion: { firstName: 'Anna', lastName: 'Rossi', treatment: 'Albire', availability: '' },
-      arrivalAt: new Date('2026-11-02T14:30').toISOString(),
-      departureAt: new Date('2026-11-09T10:00').toISOString(),
+      arrivalAt: '2026-11-02T12:30:00.000Z', // 14:30 ora clinicii
+      departureAt: '2026-11-09T08:00:00.000Z', // 10:00 ora clinicii
       coordinatorId: 2,
       accommodation: { apartmentType: 'STUDIO', isFree: true, freeDays: 3 },
       transfer: { isFree: true, direction: 'DUS_INTORS' },
