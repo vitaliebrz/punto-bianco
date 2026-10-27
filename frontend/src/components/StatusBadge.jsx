@@ -2,9 +2,9 @@ import { CheckCircle } from '@phosphor-icons/react/CheckCircle'
 import { CircleDashed } from '@phosphor-icons/react/CircleDashed'
 import { HourglassMedium } from '@phosphor-icons/react/HourglassMedium'
 import { cn } from '../cn'
-import { ACCOMMODATION_STATUS_LABELS, BACK_OFFICE_STATUS_LABELS } from '../labels'
+import { ACCOMMODATION_STATUS_LABELS, BACK_OFFICE_STATUS_LABELS, USER_STATUS_LABELS } from '../labels'
 
-const LABELS = { ...BACK_OFFICE_STATUS_LABELS, ...ACCOMMODATION_STATUS_LABELS }
+const LABELS = { ...BACK_OFFICE_STATUS_LABELS, ...ACCOMMODATION_STATUS_LABELS, ...USER_STATUS_LABELS }
 
 // gri = de făcut, galben = în lucru, mentă = gata (culoarea + iconița, nu doar culoarea)
 const TONES = {
@@ -19,6 +19,8 @@ const TONE_BY_STATUS = {
   INCEPUT: 'progress',
   FINALIZAT: 'done',
   REZERVAT: 'done',
+  ACTIV: 'done',
+  INACTIV: 'todo',
 }
 
 export default function StatusBadge({ status, className }) {

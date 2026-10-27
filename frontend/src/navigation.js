@@ -8,6 +8,7 @@ export const PAGE_ROLES = {
   backOffice: ['BACK_OFFICE', ...READ_ONLY_ROLES],
   accommodations: ['MANAGER_CAZARI', ...READ_ONLY_ROLES],
   transfers: ['SOFER', ...READ_ONLY_ROLES],
+  users: [], // doar Admin
 }
 
 // Meniul din antet, în ordinea afișării
@@ -17,6 +18,7 @@ export const MENU = [
   { path: '/back-office', label: 'Back office', roles: PAGE_ROLES.backOffice },
   { path: '/cazari', label: 'Cazări', roles: PAGE_ROLES.accommodations },
   { path: '/transferuri', label: 'Calendar transferuri', roles: PAGE_ROLES.transfers },
+  { path: '/utilizatori', label: 'Utilizatori', roles: PAGE_ROLES.users },
 ]
 
 // Rolurile care primesc notificări (Pasul 2 din cerință)

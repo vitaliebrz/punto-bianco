@@ -12,6 +12,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   5. [Design: brand, Tailwind, redesign complet](planuri/05-design-brand.md)
   6. [Test de încărcare: 50 de utilizatori în același timp](planuri/06-test-incarcare.md)
   7. [Code review înainte de publicare: reparații](planuri/07-code-review-reparatii.md)
+  8. [Gestionarea utilizatorilor (Admin)](planuri/08-gestionare-utilizatori.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
@@ -62,7 +63,7 @@ Verificare: http://localhost:3000/api/health răspunde `{"ok":true}`.
 Seed-ul afișează la pornire host-ul bazei pe care scrie și pornește doar dacă e cel din `DB_WRITE_HOST` (ramura `dev`).
 
 ### Conturi demo (create de seed)
-Toate au parola din `SEED_PASSWORD`.
+Toate au parola din `SEED_PASSWORD`. Conturi noi se creează din aplicație, ca Admin: pagina **Utilizatori**.
 
 | Email | Rol |
 |---|---|
@@ -105,11 +106,11 @@ npx prisma studio           # interfață în browser pentru tabelele din baza d
 
 ```powershell
 cd backend
-npm test            # 285 de teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
+npm test            # 349 de teste: validare, roluri, API, utilizatori, notificări, calendar, integrare cu baza (Neon dev)
 npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
-npm test            # 92 de teste: login și sesiune, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
+npm test            # 99 de teste: login și sesiune, formular, liste, butoane de status, utilizatori, meniu, clopoțel, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
@@ -126,7 +127,10 @@ npm test            # 92 de teste: login și sesiune, formular, liste, butoane d
 | backend | `tests/transfer-events.test.js` | evenimentele de calendar: sosire, plecare, dus-întors, interval | nu |
 | backend | `tests/db-write-guard.test.js` | scrierile uneltelor doar în baza din `DB_WRITE_HOST` | nu |
 | backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
+| backend | `tests/user-validation.test.js` | formularul unui cont nou (email, rol, parola de 8–72 de bytes, câmpuri în plus), dezactivarea | nu |
+| backend | `tests/users-api.test.js` | rutele de utilizatori: hash bcrypt, email duplicat (409), propriul cont (400), cont inexistent (404) | nu (bază simulată) |
 | backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane; Manager cazări fără date medicale | **da**, scrie și **șterge** la final |
+| backend | `tests/db-users.test.js` | cont nou → login → dezactivat (login și token vechi refuzate, dispare din coordonatori) → reactivat | **da**, scrie și **șterge** la final |
 | frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, parola vizibilă, sesiunea după refresh, mai multe tab-uri, stocare blocată, timpul limită al cererilor | nu |
 | frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (comutatoare, câmpuri obligatorii, date trimise, erori lângă câmpuri și focus pe primul greșit, erori de server și rețea, lista coordonatorilor), lista vizitelor | nu |
 | frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, rezumatul, conflict 409, fără trimitere dublă, doar-vizualizare, detalii fără date medicale | nu |
@@ -135,12 +139,13 @@ npm test            # 92 de teste: login și sesiune, formular, liste, butoane d
 | frontend | `src/test/data-session.test.jsx` | fără date vechi la schimbarea paginii, un 401 întârziat nu închide sesiunea nouă | nu |
 | frontend | `src/test/feedback.test.jsx` | eroarea la „Marchează toate ca citite”, mesajul „Vizita a fost înregistrată” o singură dată, „Înapoi” și „Reîncearcă” în detalii | nu |
 | frontend | `src/test/labels.test.js` | etichetele de cost, numărarea pe statusuri | nu |
+| frontend | `src/test/users.test.jsx` | pagina Utilizatori: lista, cont nou, email duplicat, dezactivare cu confirmare, doar Admin | nu |
 
 Testele frontend pică dacă pagina face o cerere pe care testul nu a simulat-o (`src/test/setup.js`).
 
-**Testele de integrare** (`db.test.js`, `db-flow.test.js`):
+**Testele de integrare** (`db.test.js`, `db-flow.test.js`, `db-users.test.js`):
 - au nevoie de `backend/.env` cu baza Neon `dev` și de datele din seed (`npm run seed`);
-- `db-flow.test.js` rulează doar dacă `DB_WRITE_HOST` e host-ul din `DATABASE_URL`; șterge la pornire resturile unei rulări întrerupte, creează vizite de test și le șterge la final; datele din seed și notificările tale rămân neatinse;
+- `db-flow.test.js` și `db-users.test.js` rulează doar dacă `DB_WRITE_HOST` e host-ul din `DATABASE_URL`; șterg la pornire resturile unei rulări întrerupte, creează vizite / conturi de test (`test-utilizator-…@puntobianco.test`) și le șterg la final; datele din seed și notificările tale rămân neatinse;
 - dacă lipsesc datele de acces la bază, sunt sărite automat.
 
 **GitHub Actions** ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) rulează pe Node 22 la fiecare Pull Request și la fiecare push pe `main`:

@@ -32,7 +32,7 @@ punto-bianco/
 │  │  ├─ lib/                 prisma.js (clientul bazei), format.js (ora clinicii), params.js (id din URL),
 │  │  │                       dbWriteGuard.js (în ce bază au voie să scrie seed-ul și testele)
 │  │  ├─ middleware/          auth.js (token, roluri, doar-citire), validate.js (zod)
-│  │  ├─ schemas/             formele acceptate ale datelor: auth.js, visit.js, transfer.js
+│  │  ├─ schemas/             formele acceptate ale datelor: auth.js, visit.js, transfer.js, user.js
 │  │  ├─ services/            logică fără HTTP: notificări, evenimente de calendar, forma vizitei
 │  │  └─ routes/              auth, users, visits, accommodations, transfers, notifications
 │  └─ .env.example            model pentru variabilele de mediu
@@ -48,7 +48,7 @@ punto-bianco/
 │     ├─ useApiData.js        încărcarea datelor unei pagini (se încarcă / eroare / date)
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
 │     ├─ components/          piesele comune ale interfeței (vezi „Sistemul de design”)
-│     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar
+│     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar, Utilizatori
 │     ├─ navigation.js        ce pagini vede fiecare rol (meniul)
 │     ├─ visitForm.js         starea formularului „Vizită nouă” -> datele trimise la server
 │     ├─ transferEvents.js    evenimentele calendarului (textul „Sosire 14:30 – …”, culorile)
@@ -86,6 +86,7 @@ Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile
 | `PageState`, `Skeleton`, `EmptyState`, `Loader`, `ErrorBoundary` | stările unei pagini: schelet la încărcare, eroare (cu „Reîncearcă” doar când are rost: rețea sau eroare de server), listă goală, „Se încarcă…”, mesaj în loc de ecran alb la o eroare neașteptată |
 | `NotificationBell`, `StatusSummary`, `ScrollToTop` | clopoțelul, rezumatul pe statusuri, derularea la începutul paginii la fiecare schimbare de pagină |
 | `Meta`, `HomeRedirect` | iconiță + valoare (sosire, plecare, coordonator în carduri); pagina „/”, care trimite fiecare rol la prima lui pagină |
+| `PasswordToggle` | butonul cu ochi care arată / ascunde parola (login, cont nou); `FormField` îl primește prin `action` |
 
 **Telefon:**
 - **Meniul** e un panou care glisează din stânga. Se închide la orice schimbare de pagină (inclusiv butonul Înapoi al telefonului); cât e deschis, pagina din spate e inactivă, iar la închidere focusul revine pe butonul ☰.
@@ -129,13 +130,18 @@ Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e 
 
 | Rol (în cod) | Denumire | Acces |
 |---|---|---|
-| `ADMIN` | Admin | tot |
+| `ADMIN` | Admin | tot, inclusiv **utilizatorii**: creează conturi, le dezactivează / reactivează |
 | `COORDONATOR` | Coordonator tratament | înregistrează vizitele pacienților |
 | `BACK_OFFICE` | Back office | lista vizitelor, statusuri Început / Finalizat |
 | `MANAGER_CAZARI` | Manager cazări | cererile de cazare, Neprelucrat → Rezervat |
 | `SOFER` | Șofer | calendarul transferurilor |
 | `CONTABIL` | Contabil | **doar citire** |
 | `CONTROL_CALITATE` | Control calitate | **doar citire** |
+
+**Conturile** le creează Admin-ul din pagina „Utilizatori” (pe lângă cele demo din seed):
+- parola inițială o alege Admin-ul (minim 8 caractere) și i-o comunică colegului;
+- conturile nu se șterg, se **dezactivează**: vizitele păstrează coordonatorul și autorul;
+- un cont dezactivat pierde accesul **imediat**, chiar dacă e conectat (`requireAuth` citește utilizatorul din bază la fiecare cerere): nu mai poate intra, nu mai apare în lista de coordonatori și nu mai primește notificări.
 
 ## Fluxul vizitei
 
@@ -176,6 +182,9 @@ Toate rutele de mai jos, în afară de login și health, cer `Authorization: Bea
 | POST | `/api/auth/login` | oricine | login → token |
 | GET | `/api/auth/me` | conectat | utilizatorul curent |
 | GET | `/api/users/coordinators` | conectat | coordonatorii activi (lista din formular) |
+| GET | `/api/users` | Admin | toți utilizatorii (fără hash-ul parolei), întâi cei activi |
+| POST | `/api/users` | Admin | `{ fullName, email, role, password }` → cont nou (parola salvată doar ca hash bcrypt); email existent → 409 |
+| PATCH | `/api/users/:id/active` | Admin | `{ "active": true \| false }`; propriul cont nu se poate dezactiva (400) |
 | GET | `/api/visits` | Coordonator, Back office, Contabil, Control calitate | vizitele, ordonate după sosire |
 | GET | `/api/visits/:id` | aceiași + Manager cazări | detaliile unei vizite; Managerul de cazări: doar vizitele cu cazare (altfel 404), fără tratament și disponibilitate |
 | POST | `/api/visits` | Coordonator | înregistrează vizita + notificările |
@@ -192,7 +201,7 @@ Toate rutele de mai jos, în afară de login și health, cer `Authorization: Bea
 - 401: fără login sau sesiune expirată;
 - 403: rolul nu are voie;
 - 404: nu există;
-- 409: statusul a fost deja schimbat.
+- 409: statusul a fost deja schimbat; emailul unui cont nou e deja folosit.
 
 Aceeași API poate fi folosită ulterior de Bitrix24 sau de alte aplicații.
 

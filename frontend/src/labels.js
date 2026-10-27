@@ -23,6 +23,12 @@ export const ACCOMMODATION_STATUS_LABELS = {
   REZERVAT: 'Rezervat',
 }
 
+// Starea unui cont în pagina Utilizatori (din câmpul `active`)
+export const USER_STATUS_LABELS = {
+  ACTIV: 'Activ',
+  INACTIV: 'Inactiv',
+}
+
 // Costul cazării: „Gratuită 3 zile” / „Gratuită 1 zi” / „Contra cost”
 export const accommodationCostLabel = ({ isFree, freeDays }) =>
   isFree ? `Gratuită ${freeDays} ${freeDays === 1 ? 'zi' : 'zile'}` : 'Contra cost'

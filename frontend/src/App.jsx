@@ -10,6 +10,7 @@ import AccommodationsPage from './pages/AccommodationsPage'
 import BackOfficePage from './pages/BackOfficePage'
 import LoginPage from './pages/LoginPage'
 import NewVisitPage from './pages/NewVisitPage'
+import UsersPage from './pages/UsersPage'
 import VisitDetailsPage from './pages/VisitDetailsPage'
 import VisitsPage from './pages/VisitsPage'
 
@@ -49,6 +50,9 @@ export default function App() {
                   </Suspense>
                 }
               />
+            </Route>
+            <Route element={<ProtectedRoute roles={PAGE_ROLES.users} />}>
+              <Route path="/utilizatori" element={<UsersPage />} />
             </Route>
           </Route>
         </Route>
