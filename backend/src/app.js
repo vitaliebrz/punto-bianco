@@ -7,6 +7,7 @@ import visitRoutes from './routes/visits.js';
 import accommodationRoutes from './routes/accommodations.js';
 import transferRoutes from './routes/transfers.js';
 import notificationRoutes from './routes/notifications.js';
+import { parseTrustProxy } from './config.js';
 import { requireAuth, readOnlyGuard } from './middleware/auth.js';
 
 // Construiește aplicația Express (fără s-o pornească).
@@ -17,8 +18,10 @@ export function createApp() {
   // În spatele unui proxy (Render) IP-ul real vine în header-ul X-Forwarded-For.
   // Îl credem DOAR dacă TRUST_PROXY e setat (numărul de proxy-uri din fața aplicației);
   // altfel oricine ar putea trimite un IP fals și ar ocoli limita de încercări la login.
-  if (process.env.TRUST_PROXY) {
-    app.set('trust proxy', Number(process.env.TRUST_PROXY));
+  // O valoare greșită oprește pornirea (vezi config.js).
+  const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+  if (trustProxy !== undefined) {
+    app.set('trust proxy', trustProxy);
   }
 
   // Header-e HTTP de securitate standard (ex. interzice încărcarea API-ului în iframe)

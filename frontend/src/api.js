@@ -1,8 +1,10 @@
 // Comunicarea cu backend-ul: adresa API-ului, token-ul și tratarea erorilor într-un singur loc.
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 export const TOKEN_KEY = 'pb_token'
-// După atâtea milisecunde fără răspuns, cererea se oprește („Serverul nu răspunde”)
-export const REQUEST_TIMEOUT_MS = 20000
+// După atâtea milisecunde fără răspuns, cererea se oprește („Serverul nu răspunde”).
+// 60 s: pe planul gratuit Render, serverul „adoarme” după 15 minute fără cereri, iar prima cerere
+// după aceea durează ~50 s. Un timp mai scurt ar opri exact cererea care îl trezește.
+export const REQUEST_TIMEOUT_MS = 60000
 
 // localStorage poate lipsi (ex. mod privat cu stocare blocată). Atunci tokenul se ține doar în memorie:
 // sesiunea merge până la închiderea paginii, în loc ca fiecare cerere după login să dea eroare.

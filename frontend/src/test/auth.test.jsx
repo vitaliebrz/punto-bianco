@@ -213,4 +213,16 @@ describe('cererile au un timp limită', () => {
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS)
     await outcome
   })
+
+  it('serverul „adormit” (Render, planul gratuit) care răspunde după ~50 s e așteptat', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise((resolve) => setTimeout(() => resolve(json(200, { ok: true })), 50000))),
+    )
+
+    const request = apiFetch('/api/health')
+    await vi.advanceTimersByTimeAsync(50000)
+    await expect(request).resolves.toEqual({ ok: true })
+  })
 })
