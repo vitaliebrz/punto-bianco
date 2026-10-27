@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import prisma from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -14,24 +14,42 @@ const INVALID_CREDENTIALS = 'Email sau parolă greșite';
 // să nu dezvăluie dacă un cont există sau nu.
 const DUMMY_HASH = bcrypt.hashSync('parola-inexistenta', 10);
 
+const LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const LIMIT_MESSAGE = { error: 'Prea multe încercări. Reîncearcă peste 15 minute.' };
+
+// Email-ul din cerere, normalizat (cererea nu e încă validată în acest punct)
+const emailOf = (req) =>
+  typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 254) : '';
+
 // Router nou la fiecare apel: fiecare aplicație (inclusiv în teste) are propriul
 // contor pentru limita de încercări.
 export function createAuthRouter() {
   const router = Router();
 
-  // Max 10 încercări eșuate / 15 minute / IP. Login-urile reușite nu se numără.
-  const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 10,
+  // Două limite pentru încercările EȘUATE (login-urile reușite nu se numără):
+  // - pe cont (email + IP): 10 / 15 minute. Cine ghicește parola unui cont e blocat pe acel cont,
+  //   fără să-i blocheze pe colegii care intră de la același IP (toată clinica are același IP).
+  // - pe IP: 100 / 15 minute, limita generală împotriva încercărilor pe multe conturi.
+  // O singură limită de 10 pe IP bloca login-ul când 50 de colegi intrau în aceeași secundă
+  // (găsit cu testul de încărcare: login-urile reușite sunt scăzute abia după ce se termină).
+  const common = {
+    windowMs: LIMIT_WINDOW_MS,
     skipSuccessfulRequests: true,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    message: { error: 'Prea multe încercări. Reîncearcă peste 15 minute.' },
+    message: LIMIT_MESSAGE,
+  };
+  const accountLimiter = rateLimit({
+    ...common,
+    limit: 10,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}|${emailOf(req)}`,
   });
+  const ipLimiter = rateLimit({ ...common, limit: 100 });
 
   router.post(
     '/login',
-    loginLimiter,
+    ipLimiter,
+    accountLimiter,
     validate(loginSchema, { message: 'Date de autentificare invalide' }),
     async (req, res) => {
       const { email, password } = req.body;

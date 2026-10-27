@@ -114,6 +114,35 @@ describe('limita de încercări la login', () => {
     expect(statuses.filter((s) => s === 429)).toHaveLength(5);
   });
 
+  it('un cont blocat nu îi blochează pe colegii de la același IP', async () => {
+    const loginAs = (email) => request(app).post('/api/auth/login').send({ email, password: 'x'.repeat(80) });
+    for (let i = 0; i < 10; i++) {
+      expect((await loginAs('atacat@puntobianco.demo')).status).toBe(400);
+    }
+    expect((await loginAs('atacat@puntobianco.demo')).status).toBe(429);
+    // alt cont, același IP: nu e blocat
+    expect((await loginAs('coleg@puntobianco.demo')).status).toBe(400);
+    // majusculele / spațiile nu ocolesc limita contului
+    expect((await loginAs('  ATACAT@puntobianco.demo ')).status).toBe(429);
+  });
+
+  it('50 de cereri de login simultane de la același IP (colegii din clinică) nu sunt blocate', async () => {
+    const statuses = await Promise.all(
+      Array.from({ length: 50 }, (_, i) =>
+        request(app).post('/api/auth/login').send({ email: `coleg${i}@puntobianco.demo`, password: 'x'.repeat(80) }),
+      ),
+    ).then((responses) => responses.map((res) => res.status));
+    expect(statuses.filter((status) => status === 429)).toHaveLength(0);
+  });
+
+  it('limita pe IP: după 100 de încercări eșuate pe conturi diferite -> 429', async () => {
+    for (let i = 0; i < 100; i++) {
+      await request(app).post('/api/auth/login').send({ email: `cont${i}@puntobianco.demo`, password: 'x'.repeat(80) });
+    }
+    const res = await request(app).post('/api/auth/login').send({ email: 'altul@puntobianco.demo', password: 'x' });
+    expect(res.status).toBe(429);
+  });
+
   it('cu TRUST_PROXY, IP-ul din X-Forwarded-For e folosit (contoare separate)', async () => {
     process.env.TRUST_PROXY = '1';
     const proxied = createApp();
