@@ -76,7 +76,7 @@ describe('derularea la schimbarea paginii', () => {
     await userEvent.setup().click(within(menu).getByRole('link', { name: 'Vizită nouă' }))
 
     expect(await screen.findByRole('heading', { name: 'Vizită nouă' })).toBeInTheDocument()
-    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
   })
 })
 
