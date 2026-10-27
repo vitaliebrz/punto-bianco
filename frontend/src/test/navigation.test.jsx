@@ -182,9 +182,14 @@ describe('clopoțelul de notificări', () => {
   })
 
   it('Back office: clic pe notificare când ești deja pe pagina ta deschide tot vizita', async () => {
+    const sophie = {
+      ...VISIT,
+      id: 41,
+      patients: [{ id: 3, firstName: 'Sophie', lastName: 'Martin', isCompanion: false, treatment: 'Coroană', availability: null }],
+    }
     renderAs(USERS.backoffice, '/back-office', {
       'GET /api/visits': json(200, [VISIT]),
-      'GET /api/visits/42': json(200, VISIT),
+      'GET /api/visits/41': json(200, sophie),
       'GET /api/notifications': json(200, { ...NOTIFICATIONS, unreadCount: 0, items: [NOTIFICATIONS.items[1]] }),
     })
     const user = userEvent.setup()
@@ -193,6 +198,7 @@ describe('clopoțelul de notificări', () => {
     await user.click(screen.getByRole('button', { name: /Sophie Martin/ }))
 
     expect(await screen.findByRole('heading', { name: 'Detalii vizită' })).toBeInTheDocument()
+    expect(await screen.findByText('Coroană')).toBeInTheDocument()
   })
 
   it('„Marchează toate ca citite”', async () => {

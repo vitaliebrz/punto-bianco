@@ -6,17 +6,21 @@
 //   LOAD_BASE_URL  adresa API-ului (implicit http://localhost:3000)
 //   LOAD_USERS     câți utilizatori virtuali (implicit 50)
 //   LOAD_DURATION  câte secunde lucrează (implicit 60)
-//   LOAD_WRITES    1 = înregistrează vizite și apasă butoanele de status (implicit: 1 doar pe localhost)
+//   LOAD_WRITES    1 = înregistrează vizite și apasă butoanele de status (implicit: 1 pe localhost, 0 în rest)
 //
 // Datele create sunt marcate (numele de familie al pacientului = MARKER) și șterse la final, prin Prisma,
 // din baza din backend/.env. Datele demo nu sunt atinse.
+// Scrierile se fac DOAR pe API-ul de pe acest calculator (el folosește aceeași bază ca backend/.env, deci
+// curățenia nimerește datele create) și doar dacă baza e cea din DB_WRITE_HOST (vezi src/lib/dbWriteGuard.js).
+// Pe un server publicat (ex. Render) testul rulează doar cu citiri.
 import 'dotenv/config';
+import { dbWriteCheck } from '../src/lib/dbWriteGuard.js';
 
 const BASE_URL = (process.env.LOAD_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const USERS = Number(process.env.LOAD_USERS || 50);
 const DURATION_S = Number(process.env.LOAD_DURATION || 60);
 // „Local” = exact acest calculator (host-ul întreg, nu doar începutul adresei: „localhost-api.onrender.com”
-// NU e local). Pe orice alt server, inclusiv în rețea (192.168.x), scrierile se pornesc doar cu LOAD_WRITES=1.
+// NU e local). Pe orice alt server, inclusiv adresa din rețea (192.168.x), scrierile sunt refuzate.
 const IS_LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(BASE_URL).hostname);
 const WRITES = (process.env.LOAD_WRITES ?? (IS_LOCAL ? '1' : '0')) === '1';
 const PASSWORD = process.env.SEED_PASSWORD;
@@ -86,10 +90,15 @@ async function request(key, method, path, { token, body, allowConflict } = {}) {
 
 // ---------- Date create de test (comune tuturor utilizatorilor) ----------
 
+// visitIds / accommodationVisitIds: listele de la server (o singură dată) + vizitele create de test.
+// (Flag separat, nu „lista e goală”: altfel o vizită creată înainte de prima citire a listei ar împiedica
+// încărcarea ei, iar detaliile s-ar deschide doar pentru vizitele de test.)
 const shared = {
   coordinatorIds: [],
   visitIds: [], // toate vizitele văzute (pentru „detalii”)
+  visitsListed: false,
   accommodationVisitIds: [], // vizitele cu cazare: singurele ale căror detalii le vede Managerul de cazări
+  accommodationsListed: false,
   testVisits: [], // { id, status } create de test, pentru Back office
   testAccommodations: [], // { id, status } create de test, pentru Manager cazări
 };
@@ -124,23 +133,29 @@ function weekRange() {
 
 const listVisits = async (user) => {
   const { data } = await request('GET /api/visits', 'GET', '/api/visits', { token: user.token });
-  if (Array.isArray(data) && shared.visitIds.length === 0) shared.visitIds.push(...data.map((visit) => visit.id));
+  if (Array.isArray(data) && !shared.visitsListed) {
+    shared.visitsListed = true;
+    shared.visitIds.push(...data.map((visit) => visit.id).filter((id) => !shared.visitIds.includes(id)));
+  }
 };
 const visitDetails = (user) => {
   // ca în aplicație: detaliile se deschid din listă, deci întâi trebuie știută lista
-  if (shared.visitIds.length === 0) return listVisits(user);
+  if (!shared.visitsListed || shared.visitIds.length === 0) return listVisits(user);
   return request('GET /api/visits/:id', 'GET', `/api/visits/${pick(shared.visitIds)}`, { token: user.token });
 };
 const listAccommodations = async (user) => {
   const { data } = await request('GET /api/accommodations', 'GET', '/api/accommodations', { token: user.token });
-  if (Array.isArray(data) && shared.accommodationVisitIds.length === 0) {
-    shared.accommodationVisitIds.push(...data.map((accommodation) => accommodation.visit.id));
+  if (Array.isArray(data) && !shared.accommodationsListed) {
+    shared.accommodationsListed = true;
+    shared.accommodationVisitIds.push(
+      ...data.map((accommodation) => accommodation.visit.id).filter((id) => !shared.accommodationVisitIds.includes(id)),
+    );
   }
 };
 // Managerul de cazări deschide detaliile din pagina Cazări, deci doar vizite CU cazare
-// (pentru celelalte, API-ul răspunde corect 404: detaliile conțin tratamentul pacienților).
+// (pentru celelalte, API-ul răspunde corect 404).
 const accommodationVisitDetails = (user) => {
-  if (shared.accommodationVisitIds.length === 0) return listAccommodations(user);
+  if (!shared.accommodationsListed || shared.accommodationVisitIds.length === 0) return listAccommodations(user);
   return request('GET /api/visits/:id', 'GET', `/api/visits/${pick(shared.accommodationVisitIds)}`, { token: user.token });
 };
 const transfers = (user) => request('GET /api/transfers', 'GET', `/api/transfers?${weekRange()}`, { token: user.token });
@@ -268,6 +283,14 @@ function report(totalMs) {
 async function main() {
   if (!PASSWORD) throw new Error('Lipsește SEED_PASSWORD în backend/.env (parola conturilor demo).');
   if (WRITES && process.env.NODE_ENV === 'production') throw new Error('Scrierile nu sunt permise cu NODE_ENV=production.');
+  if (WRITES && !IS_LOCAL) {
+    // Un server din altă parte poate avea altă bază decât backend/.env: datele create n-ar mai fi șterse
+    throw new Error(`Scrierile se fac doar pe API-ul local (http://localhost:3000). Pentru ${BASE_URL} rulează fără LOAD_WRITES=1.`);
+  }
+  if (WRITES) {
+    const dbCheck = dbWriteCheck();
+    if (!dbCheck.allowed) throw new Error(`Scrieri refuzate: ${dbCheck.reason}. Vezi DB_WRITE_HOST în .env.example.`);
+  }
 
   console.log(`Test de încărcare: ${USERS} utilizatori, ${DURATION_S} s, API ${BASE_URL}, scrieri: ${WRITES ? 'DA' : 'nu'}`);
   const health = await request('GET /api/health', 'GET', '/api/health');

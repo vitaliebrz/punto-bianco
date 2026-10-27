@@ -20,22 +20,34 @@ export const json = (status, body) => ({
   json: async () => body,
 })
 
+// Cererile pe care testul nu le-a simulat. Pagina le vede ca „serverul nu răspunde” și de multe ori
+// le înghite (ex. clopoțelul), deci testul ar trece fără să observe; setup.js pică testul dacă lista nu e goală.
+export const unexpectedRequests = []
+
 // routes = { 'GET /api/visits': răspuns | (options) => răspuns }
 export function mockFetch(routes) {
   const fetchMock = vi.fn(async (url, options = {}) => {
     const key = `${options.method ?? 'GET'} ${new URL(url).pathname}`
     const handler = routes[key]
-    if (!handler) throw new Error(`Cerere neașteptată: ${key}`)
+    if (!handler) {
+      unexpectedRequests.push(key)
+      throw new Error(`Cerere neașteptată: ${key}`)
+    }
     return typeof handler === 'function' ? handler(options) : handler
   })
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
 
-// Pornește aplicația la adresa `path`, cu `user` deja conectat (token salvat + /api/auth/me)
+// Pornește aplicația la adresa `path`, cu `user` deja conectat (token salvat + /api/auth/me).
+// Clopoțelul (Back office, Manager cazări) face parte din cadrul paginii: implicit nu are notificări.
 export function renderAs(user, path, routes = {}) {
   localStorage.setItem('pb_token', 'token')
-  const fetchMock = mockFetch({ 'GET /api/auth/me': json(200, { user }), ...routes })
+  const fetchMock = mockFetch({
+    'GET /api/auth/me': json(200, { user }),
+    'GET /api/notifications': json(200, { unreadCount: 0, items: [] }),
+    ...routes,
+  })
   render(
     <MemoryRouter initialEntries={[path]}>
       <AuthProvider>

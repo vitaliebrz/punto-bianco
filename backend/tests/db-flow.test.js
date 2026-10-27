@@ -1,12 +1,18 @@
 // Test de integrare pentru fluxul vizitei (Pasul 1 + Pasul 2 din cerință), pe baza Neon "dev".
 // SCRIE în bază: creează vizite de test și le ȘTERGE la final (notificările lor se șterg în cascadă).
-// Datele din seed nu sunt modificate. Se sare automat dacă lipsesc DATABASE_URL sau SEED_PASSWORD.
+// Datele din seed nu sunt modificate.
+// Se sare automat dacă lipsesc SEED_PASSWORD sau DB_WRITE_HOST, ori dacă DATABASE_URL arată spre
+// altă bază decât DB_WRITE_HOST (ex. producția pusă din greșeală în .env).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
+import { dbWriteCheck } from '../src/lib/dbWriteGuard.js';
 import prisma from '../src/lib/prisma.js';
 
-const hasDb = Boolean(process.env.DATABASE_URL && process.env.SEED_PASSWORD);
+const hasDb = Boolean(process.env.SEED_PASSWORD) && dbWriteCheck().allowed;
+// Pacientul principal al fiecărei vizite de test: după el se găsesc și resturile unei rulări întrerupte
+const TEST_PATIENT = { firstName: 'Test', lastName: 'Flux' };
+const testVisitsWhere = { patients: { some: { ...TEST_PATIENT, isCompanion: false } } };
 const ACCOUNTS = ['admin', 'coordonator1', 'backoffice', 'cazari', 'sofer1', 'contabil'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -27,8 +33,7 @@ describe.skipIf(!hasDb)('fluxul vizitei (scrie în baza dev, apoi curăță)', (
   function visitPayload(overrides = {}) {
     return {
       patient: {
-        firstName: 'Test',
-        lastName: 'Flux',
+        ...TEST_PATIENT,
         treatment: 'Implant (test automat)',
         availability: 'După ora 12:00',
       },
@@ -62,6 +67,9 @@ describe.skipIf(!hasDb)('fluxul vizitei (scrie în baza dev, apoi curăță)', (
   }
 
   beforeAll(async () => {
+    // Resturile unei rulări întrerupte (Ctrl+C, conexiune căzută) — afterAll n-a mai apucat să le șteargă
+    await prisma.visit.deleteMany({ where: testVisitsWhere });
+
     app = createApp();
     for (const name of ACCOUNTS) {
       const res = await request(app)
@@ -240,10 +248,28 @@ describe.skipIf(!hasDb)('fluxul vizitei (scrie în baza dev, apoi curăță)', (
       });
 
       it('„Marchează toate ca citite” lasă 0 necitite', async () => {
-        const res = await api('post', '/api/notifications/read-all', 'cazari');
-        expect(res.status).toBe(200);
-        const after = await api('get', '/api/notifications', 'cazari');
-        expect(after.body.unreadCount).toBe(0);
+        // „Toate” atinge și notificările care nu sunt ale testului (ex. din testarea manuală):
+        // le ținem minte și le facem la loc necitite, ca testul să nu schimbe datele altcuiva.
+        const othersUnread = await prisma.notification.findMany({
+          where: {
+            user: { email: 'cazari@puntobianco.demo' },
+            readAt: null,
+            // (visitId null separat: în SQL, NULL NOT IN (…) nu e adevărat)
+            OR: [{ visitId: null }, { visitId: { notIn: createdVisitIds } }],
+          },
+          select: { id: true },
+        });
+        try {
+          const res = await api('post', '/api/notifications/read-all', 'cazari');
+          expect(res.status).toBe(200);
+          const after = await api('get', '/api/notifications', 'cazari');
+          expect(after.body.unreadCount).toBe(0);
+        } finally {
+          await prisma.notification.updateMany({
+            where: { id: { in: othersUnread.map((row) => row.id) } },
+            data: { readAt: null },
+          });
+        }
       });
     });
   });

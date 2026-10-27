@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { PrismaClient } from '@prisma/client';
+import { dbWriteCheck } from '../src/lib/dbWriteGuard.js';
 
 if (process.env.NODE_ENV === 'production') {
   console.error('Seed-ul nu rulează în producție (NODE_ENV=production).');
@@ -14,15 +15,15 @@ if (!process.env.SEED_PASSWORD) {
   process.exit(1);
 }
 
-// Afișăm pe ce bază de date scriem (doar host-ul, fără parolă),
-// ca să fie evident dacă e ramura Neon "dev" sau altceva.
-let dbHost = '(necunoscut)';
-try {
-  dbHost = new URL(process.env.DATABASE_URL).hostname;
-} catch {
-  // DATABASE_URL lipsește sau e invalid — Prisma va da eroarea potrivită
+// Seed-ul ȘTERGE toate datele: rulează doar pe baza aleasă explicit în .env (DB_WRITE_HOST).
+// Afișăm doar host-ul (fără parolă), ca să fie evident dacă e ramura Neon "dev" sau altceva.
+const dbCheck = dbWriteCheck();
+if (!dbCheck.allowed) {
+  console.error(`Seed oprit, nu s-a șters nimic: ${dbCheck.reason}.`);
+  console.error('Pune în .env DB_WRITE_HOST = host-ul bazei pe care vrei seed-ul (vezi .env.example).');
+  process.exit(1);
 }
-console.log(`Seed pe baza de date: ${dbHost}`);
+console.log(`Seed pe baza de date: ${dbCheck.host}`);
 
 const prisma = new PrismaClient();
 
