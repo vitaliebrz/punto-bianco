@@ -82,8 +82,8 @@ describe('clopoțelul de notificări', () => {
     const panel = screen.getByRole('dialog', { name: 'Notificări' })
     const items = within(panel).getAllByRole('button', { name: /Vizită nouă/ })
     expect(items).toHaveLength(2)
-    expect(items[0]).toHaveClass('unread')
-    expect(items[1]).not.toHaveClass('unread')
+    expect(items[0]).toHaveAttribute('data-unread', 'true')
+    expect(items[1]).toHaveAttribute('data-unread', 'false')
   })
 
   it('clic pe o notificare necitită: o marchează citită și deschide vizita', async () => {

@@ -1,61 +1,184 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ClipboardText } from '@phosphor-icons/react/ClipboardText'
+import { Buildings } from '@phosphor-icons/react/Buildings'
+import { List } from '@phosphor-icons/react/List'
+import { PlusCircle } from '@phosphor-icons/react/PlusCircle'
+import { SignOut } from '@phosphor-icons/react/SignOut'
+import { UsersThree } from '@phosphor-icons/react/UsersThree'
+import { Van } from '@phosphor-icons/react/Van'
+import { X } from '@phosphor-icons/react/X'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { cn } from '../cn'
 import { menuFor, NOTIFIED_ROLES } from '../navigation'
 import { ROLE_LABELS } from '../roles'
+import Logo from './Logo'
 import NotificationBell from './NotificationBell'
 
-// Antetul comun al paginilor pentru utilizatori conectați: meniul rolului, clopoțelul, ieșirea.
+// Iconița fiecărei pagini din meniu
+const MENU_ICONS = {
+  '/vizite': UsersThree,
+  '/vizite/noua': PlusCircle,
+  '/back-office': ClipboardText,
+  '/cazari': Buildings,
+  '/transferuri': Van,
+}
+
+// Inițialele pentru avatar: „Elena Popescu” -> „EP”
+const initials = (fullName) =>
+  fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('')
+
+// Cadrul paginilor pentru utilizatori conectați.
+// Calculator (lg): bară laterală fixă (logo, meniul rolului, utilizatorul) + bară sus cu clopoțelul.
+// Telefon: bară sus (meniu, logo, clopoțel); bara laterală devine un panou care glisează din stânga.
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menu = menuFor(user.role)
+  const hasBell = NOTIFIED_ROLES.includes(user.role)
+
+  // Escape închide meniul de pe telefon
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   return (
-    <>
-      <header className="app-header">
-        <div className="header-top">
-          <NavLink to="/" className="brand">
-            Punto Bianco
-          </NavLink>
+    <div className="min-h-dvh">
+      {/* Fundal întunecat în spatele meniului deschis pe telefon */}
+      {menuOpen && (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-30 animate-fade-in bg-ink-900/30 lg:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
 
-          <div className="header-actions">
-            {NOTIFIED_ROLES.includes(user.role) && <NotificationBell />}
-            <span className="user-name">
-              {user.fullName}
-              <span className="user-role">{ROLE_LABELS[user.role] ?? user.role}</span>
-            </span>
-            <button type="button" className="btn btn-secondary" onClick={logout}>
-              Ieșire
-            </button>
-            {menu.length > 0 && (
-              <button
-                type="button"
-                className="btn btn-secondary menu-toggle"
-                aria-expanded={menuOpen}
-                aria-controls="main-menu"
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                Meniu
-              </button>
-            )}
-          </div>
+      <aside
+        id="main-sidebar"
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-ink-200/70 bg-white',
+          'transition-[transform,visibility] duration-200 ease-out lg:visible lg:translate-x-0',
+          menuOpen ? 'visible translate-x-0 shadow-popover' : 'max-lg:invisible max-lg:-translate-x-full',
+        )}
+      >
+        <div className="flex h-16 items-center justify-between px-5">
+          <NavLink to="/" className="rounded-lg text-ink-700 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none">
+            <Logo markClassName="h-8 text-mint-500" />
+          </NavLink>
+          <button
+            type="button"
+            aria-label="Închide meniul"
+            className="flex size-10 items-center justify-center rounded-xl text-ink-500 hover:bg-ink-100 lg:hidden"
+            onClick={() => setMenuOpen(false)}
+          >
+            <X size={20} weight="bold" aria-hidden="true" />
+          </button>
         </div>
 
         {menu.length > 0 && (
-          <nav id="main-menu" className={menuOpen ? 'main-menu open' : 'main-menu'} aria-label="Meniu">
-            {menu.map((item) => (
-              <NavLink key={item.path} to={item.path} end onClick={() => setMenuOpen(false)}>
-                {item.label}
-              </NavLink>
-            ))}
+          <nav aria-label="Meniu" className="flex-1 overflow-y-auto px-3 py-4">
+            <ul className="flex flex-col gap-1">
+              {menu.map((item) => {
+                const Icon = MENU_ICONS[item.path]
+                return (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      end
+                      onClick={() => setMenuOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          'group flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors',
+                          'focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none',
+                          isActive ? 'bg-mint-100 text-ink-900' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {Icon && (
+                            <Icon
+                              size={20}
+                              weight={isActive ? 'fill' : 'regular'}
+                              aria-hidden="true"
+                              className={isActive ? 'text-mint-700' : 'text-ink-400 group-hover:text-ink-600'}
+                            />
+                          )}
+                          {item.label}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                )
+              })}
+            </ul>
           </nav>
         )}
-      </header>
 
-      <main className="app-main">
-        <Outlet />
-      </main>
-    </>
+        <div className="border-t border-ink-200/70 p-3">
+          <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+            <span
+              aria-hidden="true"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-mint-200 text-sm font-bold text-ink-800"
+            >
+              {initials(user.fullName)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-medium text-ink-900">{user.fullName}</p>
+              <p className="truncate text-[13px] text-ink-500">{ROLE_LABELS[user.role] ?? user.role}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-1 flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none"
+          >
+            <SignOut size={18} aria-hidden="true" className="text-ink-400" />
+            Ieșire
+          </button>
+        </div>
+      </aside>
+
+      <div className="lg:pl-72">
+        {/* Pe calculator bara de sus apare doar pentru clopoțel (meniul și logo-ul sunt în bara laterală) */}
+        <header
+          className={cn(
+            'sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-ink-200/70 bg-white/85 px-4 backdrop-blur-md sm:px-6 lg:justify-end lg:px-8',
+            !hasBell && 'lg:hidden',
+          )}
+        >
+          <button
+            type="button"
+            aria-label="Deschide meniul"
+            aria-expanded={menuOpen}
+            aria-controls="main-sidebar"
+            className="flex size-10 items-center justify-center rounded-xl text-ink-600 hover:bg-ink-100 lg:hidden"
+            onClick={() => setMenuOpen(true)}
+          >
+            <List size={22} weight="bold" aria-hidden="true" />
+          </button>
+          <span className="text-ink-700 lg:hidden">
+            <Logo markClassName="h-7 text-mint-500" nameClassName="text-base" />
+          </span>
+          <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {hasBell && <NotificationBell />}
+          </div>
+        </header>
+
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   )
 }
