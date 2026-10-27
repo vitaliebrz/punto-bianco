@@ -63,7 +63,7 @@ createVisit = strict {
   - `backOfficeStatusSchema = { status: INCEPUT | FINALIZAT }`;
   - `accommodationStatusSchema = { status: REZERVAT }`;
   - `transfersRangeSchema` (`from` / `to` din query, interval de maxim 62 de zile).
-- Se refolosește [validate.js](backend/src/middleware/validate.js); id-urile din URL trec printr-un mic `parseId` → 400 dacă nu e număr.
+- Se refolosește [validate.js](../../backend/src/middleware/validate.js); id-urile din URL trec printr-un mic `parseId` → 400 dacă nu e număr.
 
 ### 2. Logică pură, testabilă fără bază — `backend/src/services/`
 - **`notifications.js`**:
@@ -78,7 +78,7 @@ createVisit = strict {
     - `DUS_INTORS` → ambele.
   - Fiecare eveniment: `{ id, kind, at, names: [„Marco Rossi”, …], isFree, visitId }`, doar dacă e în intervalul cerut.
 
-### 3. Rute noi (toate după `requireAuth` + `readOnlyGuard`, montate în [app.js](backend/src/app.js))
+### 3. Rute noi (toate după `requireAuth` + `readOnlyGuard`, montate în [app.js](../../backend/src/app.js))
 
 **`routes/visits.js`:**
 | Metodă | Rută | Roluri (Admin trece mereu) |
@@ -133,7 +133,7 @@ FullCalendar: `@fullcalendar/react`, `core`, `daygrid`, `timegrid`, `list`, inst
 - **`src/navigation.js`:** lista paginilor per rol + `defaultPathFor(role)`. Pagina `/` trimite fiecare rol la prima lui pagină (Coordonator → Vizite, Șofer → Calendar etc.).
 - **`src/labels.js`:** denumirile în română pentru tipuri de apartament, direcții, statusuri (lângă `roles.js`).
 - **`src/format.js`:** dată și oră în format `ro-RO`, fusul `Europe/Chisinau`.
-- **[App.jsx](frontend/src/App.jsx):** rutele noi protejate cu `ProtectedRoute roles={…}` (existent):
+- **[App.jsx](../../frontend/src/App.jsx):** rutele noi protejate cu `ProtectedRoute roles={…}` (existent):
 
 | Rută | Pagină |
 |---|---|
@@ -179,7 +179,7 @@ FullCalendar: `@fullcalendar/react`, `core`, `daygrid`, `timegrid`, `list`, inst
   - meniul arată ultimele notificări;
   - clic pe una → o marchează citită și te duce la pagina ta;
   - „Marchează toate ca citite”.
-- **Contabil / Control calitate:** aceleași pagini, fără butoane de acțiune și cu mențiunea „Doar vizualizare”. Se folosește `isReadOnly` din [roles.js](frontend/src/roles.js).
+- **Contabil / Control calitate:** aceleași pagini, fără butoane de acțiune și cu mențiunea „Doar vizualizare”. Se folosește `isReadOnly` din [roles.js](../../frontend/src/roles.js).
 
 `HomePage.jsx` dispare (înlocuit de redirect + `AppLayout`), iar testele de login se actualizează.
 
@@ -295,4 +295,4 @@ FullCalendar nu se testează în jsdom; testăm funcțiile noastre.
 ### Limitări cunoscute
 - Listele de vizite și de cazări nu sunt împărțite pe pagini. Merge bine pentru volumul unei clinici; la mii de vizite s-ar adăuga paginare sau filtre.
 - Notificările se verifică la 30 de secunde (nu instant). E suficient pentru flux și nu cere conexiuni permanente pe Render.
-- Grila calendarului și câmpurile de dată din formular folosesc ora calculatorului. Textele afișează ora Chișinăului. La clinică cele două coincid.
+- Grila calendarului și câmpurile de dată din formular folosesc ora calculatorului. Textele afișează ora Chișinăului. La clinică cele două coincid. _(Rezolvat în [planul 07](07-code-review-reparatii.md): formularul și calendarul folosesc acum ora clinicii pe orice calculator. Tot acolo, Managerul de cazări vede doar detaliile vizitelor cu cazare, fără tratament.)_

@@ -1,16 +1,15 @@
-# React + Vite
+# Punto Bianco — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interfața aplicației Punto Bianco: React 19 + Vite + Tailwind CSS v4, publicată pe Vercel.
 
-Currently, two official plugins are available:
+```powershell
+npm install        # dacă apare eroarea "edgesOut": npx npm@11 install
+npm run dev        # http://localhost:5173 (backend-ul pe http://localhost:3000)
+npm test           # teste automate, cu serverul simulat
+npm run lint       # oxlint
+npm run build      # versiunea pentru publicare, în dist/
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Adresa backend-ului se pune în `.env` sau `.env.local` (vezi `.env.example`): `VITE_API_URL`.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Documentația completă (pornire, arhitectură, sistemul de design, teste, planuri): [docs/README.md](../docs/README.md) și [docs/arhitectura.md](../docs/arhitectura.md).

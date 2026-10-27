@@ -18,7 +18,7 @@ Fiecare plan se scrie **înainte** de implementare. La final primește o secțiu
 ## Pornire locală
 
 ### Cerințe
-- Node.js 20+
+- Node.js **20.19+** sau **22.12+** (cerut de Vite 8 și Vitest 4; CI-ul folosește Node 22)
 - Un proiect PostgreSQL pe [Neon](https://console.neon.tech)
 
 ### Baza de date: ramura Neon `dev`
@@ -33,8 +33,9 @@ Adresele ramurii `dev` le iei din consola Neon: **Connect** → Branch: **`dev`*
 cd backend
 npm install
 copy .env.example .env      # apoi completează valorile (vezi mai jos)
+npx prisma generate         # generează clientul Prisma (și după fiecare schimbare a schemei; oprește întâi backend-ul)
 npx prisma migrate dev      # creează/actualizează tabelele în baza de date
-npm run seed                # (opțional) date demo — ȘTERGE și recreează toate datele
+npm run seed                # (opțional) date demo — ȘTERGE și recreează toate datele (cere DB_WRITE_HOST)
 npm run dev                 # pornește API-ul pe http://localhost:3000
 ```
 
@@ -47,7 +48,8 @@ Variabile în `backend/.env`:
 | `JWT_SECRET` | șir lung, aleator, pentru semnarea token-urilor de login |
 | `PORT` | portul API-ului (implicit 3000) |
 | `FRONTEND_URL` | adresa frontend-ului care are voie să cheme API-ul (CORS); local `http://localhost:5173` |
-| `SEED_PASSWORD` | parola comună a conturilor demo create de seed |
+| `SEED_PASSWORD` | parola comună a conturilor demo create de seed (o alegi tu) |
+| `DB_WRITE_HOST` | host-ul bazei în care au voie să scrie seed-ul și testele (partea dintre `@` și `/` din `DATABASE_URL`, fără user și parolă). Dacă lipsește sau nu se potrivește, seed-ul refuză să ruleze, testul de integrare se sare, iar testul de încărcare face doar citiri |
 | `TRUST_PROXY` | **doar în producție** (Render): câte proxy-uri stau în fața aplicației; local nu se setează |
 
 Generare `JWT_SECRET`:
@@ -57,7 +59,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 Verificare: http://localhost:3000/api/health răspunde `{"ok":true}`.
 
-Seed-ul afișează la pornire host-ul bazei pe care scrie. Verifică să fie cel al ramurii `dev`.
+Seed-ul afișează la pornire host-ul bazei pe care scrie și pornește doar dacă e cel din `DB_WRITE_HOST` (ramura `dev`).
 
 ### Conturi demo (create de seed)
 Toate au parola din `SEED_PASSWORD`.
@@ -103,11 +105,11 @@ npx prisma studio           # interfață în browser pentru tabelele din baza d
 
 ```powershell
 cd backend
-npm test            # 216 teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
+npm test            # 285 de teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
 npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
-npm test            # 46 de teste: login, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
+npm test            # 92 de teste: login și sesiune, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
@@ -115,26 +117,35 @@ npm test            # 46 de teste: login, formular, liste, butoane de status, me
 | Unde | Fișier | Ce verifică | Bază de date |
 |---|---|---|---|
 | backend | `tests/validation.test.js` | modelul strict al datelor de login, limita bcrypt de 72 de bytes | nu |
-| backend | `tests/auth-middleware.test.js` | token (lipsă / fals / altă cheie / `alg: none` / expirat), roluri, regula doar-citire | nu |
-| backend | `tests/api.test.js` | cereri HTTP: erori, limita de încercări (inclusiv IP fals), CORS, header-e de securitate | nu |
-| backend | `tests/visit-validation.test.js` | formularul vizitei (însoțitor, sejur, cazare, transfer, câmpuri în plus), statusuri, intervalul calendarului | nu |
+| backend | `tests/auth-middleware.test.js` | token (lipsă / fals / altă cheie / `alg: none` / expirat), cont dezactivat sau șters, rolul citit din bază, roluri, regula doar-citire | nu (bază simulată) |
+| backend | `tests/access.test.js` | matricea rol × rută: fiecare rol pe fiecare rută protejată (403 unde nu are acces) | nu (bază simulată) |
+| backend | `tests/api.test.js` | cereri HTTP: erori, limita de încercări (pe cont și pe IP, inclusiv IP fals), CORS, header-e de securitate | nu |
+| backend | `tests/visit-validation.test.js` | formularul vizitei (însoțitor și tratamentul lui, sejur, câmp gol, cazare, transfer, câmpuri în plus), statusuri, intervalul calendarului | nu |
+| backend | `tests/serialize-visit.test.js` | forma vizitei trimisă clientului, varianta fără date medicale (Manager cazări) | nu |
 | backend | `tests/notifications.test.js` | cine primește notificare și textul ei, ora Chișinăului (vară / iarnă) | nu |
 | backend | `tests/transfer-events.test.js` | evenimentele de calendar: sosire, plecare, dus-întors, interval | nu |
+| backend | `tests/db-write-guard.test.js` | scrierile uneltelor doar în baza din `DB_WRITE_HOST` | nu |
 | backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
-| backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane | **da**, scrie și **șterge** la final |
-| frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, butonul care arată parola, sesiunea după refresh (token valid / expirat / server oprit) | nu |
-| frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (comutatoare, câmpuri obligatorii, date trimise, erori lângă câmpuri, câmpuri de dată, lista coordonatorilor), lista vizitelor | nu |
-| frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, rezumatul, conflict 409, doar-vizualizare | nu |
-| frontend | `src/test/navigation.test.jsx` | meniul și prima pagină pe roluri, derularea la începutul paginii, clopoțelul, textul din calendar | nu |
+| backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane; Manager cazări fără date medicale | **da**, scrie și **șterge** la final |
+| frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, parola vizibilă, sesiunea după refresh, mai multe tab-uri, stocare blocată, timpul limită al cererilor | nu |
+| frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (comutatoare, câmpuri obligatorii, date trimise, erori lângă câmpuri și focus pe primul greșit, erori de server și rețea, lista coordonatorilor), lista vizitelor | nu |
+| frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, rezumatul, conflict 409, fără trimitere dublă, doar-vizualizare, detalii fără date medicale | nu |
+| frontend | `src/test/navigation.test.jsx` | meniul pe roluri și meniul de pe telefon, derularea la începutul paginii, clopoțelul (și răspunsurile întârziate), textul din calendar | nu |
+| frontend | `src/test/format.test.js` | ora din formular citită ca ora clinicii (vară / iarnă / schimbarea orei), date imposibile | nu |
+| frontend | `src/test/data-session.test.jsx` | fără date vechi la schimbarea paginii, un 401 întârziat nu închide sesiunea nouă | nu |
+| frontend | `src/test/feedback.test.jsx` | eroarea la „Marchează toate ca citite”, mesajul „Vizita a fost înregistrată” o singură dată, „Înapoi” și „Reîncearcă” în detalii | nu |
+| frontend | `src/test/labels.test.js` | etichetele de cost, numărarea pe statusuri | nu |
+
+Testele frontend pică dacă pagina face o cerere pe care testul nu a simulat-o (`src/test/setup.js`).
 
 **Testele de integrare** (`db.test.js`, `db-flow.test.js`):
 - au nevoie de `backend/.env` cu baza Neon `dev` și de datele din seed (`npm run seed`);
-- `db-flow.test.js` creează vizite de test și le șterge la final; datele din seed rămân neatinse;
-- dacă `DATABASE_URL` sau `SEED_PASSWORD` lipsesc, sunt sărite automat.
+- `db-flow.test.js` rulează doar dacă `DB_WRITE_HOST` e host-ul din `DATABASE_URL`; șterge la pornire resturile unei rulări întrerupte, creează vizite de test și le șterge la final; datele din seed și notificările tale rămân neatinse;
+- dacă lipsesc datele de acces la bază, sunt sărite automat.
 
-**GitHub Actions** ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) rulează la fiecare Pull Request și la fiecare push pe `main`:
-- backend: teste;
-- frontend: lint, teste, build.
+**GitHub Actions** ([.github/workflows/ci.yml](../.github/workflows/ci.yml)) rulează pe Node 22 la fiecare Pull Request și la fiecare push pe `main`:
+- backend: schema Prisma (`prisma validate`), teste;
+- frontend: lint (avertismentele opresc CI-ul), teste, build.
 
 Testele cu baza de date sunt sărite acolo, pentru că secretele Neon nu se pun pe GitHub.
 

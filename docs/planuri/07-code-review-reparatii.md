@@ -1,6 +1,6 @@
 # Plan 07 — Code review înainte de publicare: reparații
 
-**Ziua 3** · Ramura: `fix/code-review-findings` · Status: **în lucru**
+**Ziua 3** · Ramura: `fix/code-review-findings` · Status: **finalizat**
 
 ## Context
 Înainte de publicare am rulat un code review automat pe tot codul (`backend/src`, `backend/prisma`, `backend/scripts`, `frontend/src`). A găsit **10 probleme**. Le reparăm pe toate înainte să publicăm aplicația. Fiecare reparație vine cu un test care dovedește că problema a dispărut.
@@ -186,4 +186,45 @@ După primele 10 reparații am rulat un review pe **tot** proiectul: backend, fr
 | 18 | problema 17 + „Ce s-a implementat” | `docs: update architecture, README and plan 07` |
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+
+### Rezultat
+- **Runda 1:** toate cele 10 probleme reparate, fiecare cu testul ei; plus 2 reparații găsite de un al doilea review automat (vezi abaterile).
+- **Runda 2:** toate cele 7 grupuri reparate. Ce ține de server (punctul „Mutate în planul 08”) se face la publicare.
+- **Teste:**
+
+  | Moment | Backend | Frontend |
+  |---|---|---|
+  | înainte de plan | 216 | 46 |
+  | după runda 1 | 218 | 65 |
+  | după runda 2 | **285** | **92** |
+
+  Toate trec, inclusiv testul de integrare pe Neon `dev`. Lint-ul (fără avertismente) și build-ul sunt curate.
+- **Verificat manual pe telefon** (runda 1): calendarul și formularul în ora clinicii.
+
+### Abateri — runda 1
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| `isoToClinicLocal` (conversia inversă) | nu există | nicio pagină nu o folosea; formularul nu se editează |
+| testele de oră rulate automat cu alt `TZ` | rulate manual cu `TZ=America/New_York`, `Asia/Tokyo` și `UTC` (notat în `format.test.js`) | Vitest nu poate schimba fusul orar al procesului după pornire; funcția nu folosește deloc ora calculatorului |
+| test pentru fusul calendarului | fără test automat; verificat pe telefon cu alt fus orar | FullCalendar nu rulează în jsdom |
+| `IS_LOCAL`: `localhost`, `127.0.0.1`, `::1` | `[::1]`, cu paranteze | așa întoarce `new URL()` host-ul IPv6 |
+| `countBy` într-un fișier comun | `countByStatus` în `labels.js`, lângă etichetele de cost (și `transferCostLabel`) | sunt folosite de aceleași pagini |
+| — | 2 commit-uri în plus: detaliile Managerului de cazări în testul de încărcare doar pentru vizitele cu cazare; o funcție nefolosită ștearsă | găsite de al doilea review automat |
+
+### Abateri — runda 2
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| matricea rol × rută în `api.test.js` | fișier nou, `tests/access.test.js` | are nevoie de baza simulată (`vi.mock`), iar `api.test.js` folosește aplicația fără simulare |
+| tratamentul însoțitorului obligatoriu | obligatoriu **doar când e trimis**; lipsă sau `null` = fără tratament | un însoțitor fără tratament e un caz valid; problema era doar bifa cu câmpul gol |
+| data goală → „Câmp obligatoriu” (formular) | mesajul vine din validarea de pe server (`schemas/visit.js`) | același mesaj pentru orice client al API-ului (ex. Bitrix24) |
+| meniul se închide cu `useEffect` pe adresă | starea se ajustează în timpul randării, când adresa se schimbă | cu `useEffect`, întoarcerea la aceeași adresă (logo → „/” → aceeași pagină) redeschidea meniul |
+| `PageState` fără „Reîncearcă” la 404 | `useApiData` dă `retryable`, folosit de toate cele 4 pagini cu date | „Reîncearcă” are rost doar pentru rețea și erori de server; la 403 sau 404 nu ajută |
+| `DB_WRITE_HOST` pentru seed, test și curățenie | în plus, testul de încărcare scrie **doar** pe API-ul local | un server publicat poate avea altă bază decât `.env`; datele create nu ar fi fost șterse |
+| mock-ul `fetch` aruncă la cereri nesimulate | arunca deja, dar pagina înghițea eroarea; acum testul pică (`setup.js`), iar `renderAs` simulează implicit clopoțelul gol | a găsit imediat un test care trecea fără să încarce vizita deschisă |
+| verificarea parametrilor din adresă în teste | nu s-a făcut | singura pagină cu parametri e calendarul, care nu rulează în jsdom |
+| răspunsurile întârziate în calendar: test | doar clopoțelul are test | FullCalendar nu rulează în jsdom |
+| `--max-warnings=0` | `--deny-warnings` | opțiunea echivalentă din oxlint |
+| planurile vechi rescrise | o notiță „actualizat ulterior” acolo unde textul nu mai e valabil (planurile 02, 03, 04, 06) | planurile rămân istoricul deciziilor |
+| — | `frontend/README.md`: descrierea proiectului în locul șablonului Vite | — |
+
+**Notă:** la pasul 12, testul de integrare a rulat o dată pe baza `dev` fără acordul cerut înainte: o comandă a pornit din folderul `backend` în loc de `frontend`. Testul a trecut și a șters vizitele create. Din pasul 17, testul nu mai poate rula fără `DB_WRITE_HOST`.

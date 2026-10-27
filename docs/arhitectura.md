@@ -25,10 +25,12 @@ punto-bianco/
 │  │  ├─ migrations/          fișierele SQL generate din schemă (versionate în git)
 │  │  └─ seed.js              date demo inventate (npm run seed)
 │  ├─ tests/                  teste automate (Vitest + Supertest)
+│  ├─ scripts/load-test.js    testul de încărcare: 50 de utilizatori simultan (npm run load-test)
 │  ├─ src/
 │  │  ├─ app.js               createApp(): aplicația Express — securitate, CORS, rute, erori
 │  │  ├─ index.js             pornește aplicația pe un port
-│  │  ├─ lib/                 prisma.js (clientul bazei), format.js (ora clinicii), params.js (id din URL)
+│  │  ├─ lib/                 prisma.js (clientul bazei), format.js (ora clinicii), params.js (id din URL),
+│  │  │                       dbWriteGuard.js (în ce bază au voie să scrie seed-ul și testele)
 │  │  ├─ middleware/          auth.js (token, roluri, doar-citire), validate.js (zod)
 │  │  ├─ schemas/             formele acceptate ale datelor: auth.js, visit.js, transfer.js
 │  │  ├─ services/            logică fără HTTP: notificări, evenimente de calendar, forma vizitei
@@ -42,16 +44,19 @@ punto-bianco/
 │     ├─ index.css            Tailwind + sistemul de design (@theme: culori, font, umbre, animații)
 │     ├─ fonts.css            declarațiile fontului MULLER
 │     ├─ calendar.css         calendarul (FullCalendar) în culorile brandului
-│     ├─ api.js               singurul loc care vorbește cu backend-ul
+│     ├─ api.js               singurul loc care vorbește cu backend-ul (token, timp limită de 20 s, erori)
+│     ├─ useApiData.js        încărcarea datelor unei pagini (se încarcă / eroare / date)
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
 │     ├─ components/          piesele comune ale interfeței (vezi „Sistemul de design”)
 │     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar
 │     ├─ navigation.js        ce pagini vede fiecare rol (meniul)
-│     ├─ labels.js, format.js denumiri în română, data și ora în ora clinicii
+│     ├─ visitForm.js         starea formularului „Vizită nouă” -> datele trimise la server
+│     ├─ transferEvents.js    evenimentele calendarului (textul „Sosire 14:30 – …”, culorile)
+│     ├─ labels.js, format.js denumiri în română, data și ora în ora clinicii (afișare și citire din formular)
 │     ├─ formStyles.js, cn.js aspectul comun al câmpurilor, unirea claselor CSS
 │     ├─ test/                teste automate (Vitest + Testing Library)
 │     └─ roles.js             denumirile rolurilor în română
-├─ .github/workflows/ci.yml   GitHub Actions: lint, teste, build la fiecare PR
+├─ .github/workflows/ci.yml   GitHub Actions (Node 22): schema Prisma, lint fără avertismente, teste, build la fiecare PR
 └─ docs/                      documentația (acest folder)
 ```
 
@@ -78,11 +83,12 @@ Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile
 | `Button`, `Logo`, `StatusBadge`, `PageHeader`, `Panel` | buton (3 variante), logo, insigna de status (culoare + iconiță), antetul paginii, panou cu titlu |
 | `FormField`, `Switch`, `SegmentedControl`, `RadioCards`, `Listbox` | câmpuri de formular: text (cu asterisc la cele obligatorii), comutator, butoane segmentate, carduri selectabile, listă de alegere proprie (coordonatorul) |
 | `FormSection` | secțiune numerotată a unui formular lung |
-| `PageState`, `Skeleton`, `EmptyState`, `Loader`, `ErrorBoundary` | stările unei pagini: schelet la încărcare, eroare cu „Reîncearcă”, listă goală, „Se încarcă…”, mesaj în loc de ecran alb la o eroare neașteptată |
+| `PageState`, `Skeleton`, `EmptyState`, `Loader`, `ErrorBoundary` | stările unei pagini: schelet la încărcare, eroare (cu „Reîncearcă” doar când are rost: rețea sau eroare de server), listă goală, „Se încarcă…”, mesaj în loc de ecran alb la o eroare neașteptată |
 | `NotificationBell`, `StatusSummary`, `ScrollToTop` | clopoțelul, rezumatul pe statusuri, derularea la începutul paginii la fiecare schimbare de pagină |
+| `Meta`, `HomeRedirect` | iconiță + valoare (sosire, plecare, coordonator în carduri); pagina „/”, care trimite fiecare rol la prima lui pagină |
 
 **Telefon:**
-- **Meniul** e un panou care glisează din stânga.
+- **Meniul** e un panou care glisează din stânga. Se închide la orice schimbare de pagină (inclusiv butonul Înapoi al telefonului); cât e deschis, pagina din spate e inactivă, iar la închidere focusul revine pe butonul ☰.
 - **Listele:** Vizite e tabel doar de la 1280 px; mai îngust, fiecare vizită e un card.
 - **Câmpurile** au text de 16 px, ca iPhone să nu mărească singur pagina.
 - **Comutatoarele** răspund la prima atingere: tot rândul e ținta, fără așteptarea pentru dublă atingere.
@@ -107,7 +113,17 @@ Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile
 - **Corp JSON de maxim 10 KB.**
 - **Erorile interne** nu trimit detalii tehnice clientului.
 
-Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e întotdeauna în backend.
+Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e întotdeauna în backend. Testul `tests/access.test.js` încearcă fiecare rol pe fiecare rută protejată.
+
+**Sesiunea în browser** (`api.js`, `AuthProvider`):
+- tokenul stă în `localStorage`; dacă browserul îl blochează (mod privat), se ține în memorie până la închiderea paginii;
+- ieșirea din cont într-un tab închide sesiunea în toate tab-urile (evenimentul `storage`), ca datele pacienților să nu rămână pe un ecran uitat deschis;
+- un 401 deconectează doar dacă cererea a plecat cu tokenul curent (un răspuns întârziat nu închide o sesiune nouă);
+- o cerere fără răspuns în 20 s se oprește cu „Serverul nu răspunde”.
+
+**Datele medicale** (tratament, disponibilitate) le văd doar rolurile care au nevoie de ele. Managerul de cazări vede detaliile **doar** pentru vizitele cu cerere de cazare (altfel 404, ca pentru o vizită inexistentă) și **fără** tratament și disponibilitate.
+
+**Uneltele care scriu în bază** (seed-ul, care șterge tot, testul de integrare și testul de încărcare) rulează doar dacă host-ul din `DATABASE_URL` e cel din `DB_WRITE_HOST` (`src/lib/dbWriteGuard.js`). Adresa producției pusă din greșeală în `.env` nu poate fi ștearsă.
 
 ## Roluri
 
@@ -124,7 +140,8 @@ Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e 
 ## Fluxul vizitei
 
 1. **Coordonatorul înregistrează vizita** (pagina „Vizită nouă” → `POST /api/visits`).
-   - Datele trec prin validarea strictă din `schemas/visit.js`: câmpurile în plus sunt respinse, iar plecarea trebuie să fie după sosire.
+   - Datele trec prin validarea strictă din `schemas/visit.js`: câmpurile în plus sunt respinse, iar plecarea trebuie să fie după sosire. Dacă însoțitorul are tratament, textul lui e obligatoriu.
+   - După o eroare, formularul derulează la primul câmp greșit; eroarea unui câmp dispare când e corectat.
    - Coordonatorul responsabil trebuie să fie un coordonator activ.
 2. **Într-o singură tranzacție** se salvează vizita, persoanele, tratamentele, cazarea, transferul **și notificările**. Fie se salvează tot, fie nimic.
 3. **Cine e anunțat** (`services/notifications.js`):
@@ -136,7 +153,7 @@ Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e 
    - Back office: `NEPRELUAT` → `INCEPUT` → `FINALIZAT`;
    - cazare: `NEPRELUCRAT` → `REZERVAT`.
 
-   Actualizarea are condiție pe statusul curent. Dacă doi oameni apasă în același timp, doar primul reușește; al doilea primește **409** și lista se reîncarcă.
+   Actualizarea are condiție pe statusul curent. Dacă doi oameni apasă în același timp, doar primul reușește; al doilea primește **409** și lista se reîncarcă. În pagină, fiecare card își blochează butonul cât se salvează, deci aceeași apăsare nu pleacă de două ori.
 6. **Calendarul șoferului** (`services/transferEvents.js`):
    - `SOSIRE` → un eveniment la ora sosirii;
    - `PLECARE` → la ora plecării;
@@ -144,7 +161,10 @@ Ascunderea paginilor în frontend e doar pentru comoditate; protecția reală e 
 
    În pagină, textul e „Sosire 14:30 – Nume pacient(i)”.
 
-**Ora:** în bază orele sunt în UTC. Textele (notificări, liste, calendar) le afișează în ora clinicii, **Europe/Chisinau**, cu trecerea automată la ora de vară sau de iarnă. Formularul și grila calendarului folosesc ora calculatorului, care la clinică e aceeași.
+**Ora:** în bază orele sunt în UTC. Toată aplicația lucrează în ora clinicii, **Europe/Chisinau**, cu trecerea automată la ora de vară sau de iarnă, **oricare ar fi fusul orar al calculatorului sau telefonului**:
+- textele (notificări, liste, detalii) le afișează în ora clinicii (`format.js`, `lib/format.js`);
+- ora scrisă în formular e citită ca ora clinicii (`clinicLocalToIso`); o dată imposibilă (luna 13, ora 24) e respinsă;
+- calendarul șoferului (grila, „azi”, linia orei curente) e pe ora clinicii (`timeZone` + extensia `@fullcalendar/luxon3`).
 
 ## API
 
@@ -157,7 +177,7 @@ Toate rutele de mai jos, în afară de login și health, cer `Authorization: Bea
 | GET | `/api/auth/me` | conectat | utilizatorul curent |
 | GET | `/api/users/coordinators` | conectat | coordonatorii activi (lista din formular) |
 | GET | `/api/visits` | Coordonator, Back office, Contabil, Control calitate | vizitele, ordonate după sosire |
-| GET | `/api/visits/:id` | aceiași + Manager cazări | detaliile unei vizite |
+| GET | `/api/visits/:id` | aceiași + Manager cazări | detaliile unei vizite; Managerul de cazări: doar vizitele cu cazare (altfel 404), fără tratament și disponibilitate |
 | POST | `/api/visits` | Coordonator | înregistrează vizita + notificările |
 | PATCH | `/api/visits/:id/back-office-status` | Back office | `{ "status": "INCEPUT" \| "FINALIZAT" }` |
 | GET | `/api/accommodations` | Manager cazări, Contabil, Control calitate | cererile de cazare, ordonate după sosire |
