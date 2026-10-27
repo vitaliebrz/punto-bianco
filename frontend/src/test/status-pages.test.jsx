@@ -33,7 +33,7 @@ describe('Back office', () => {
     await userEvent.setup().click(within(card).getByRole('button', { name: 'Început' }))
 
     expect(await within(card).findByRole('button', { name: 'Finalizat' })).toBeInTheDocument()
-    expect(within(card).getByText('Început')).toHaveClass('badge')
+    expect(within(card).getByText('Început')).toHaveAttribute('data-status', 'INCEPUT')
     expect(sentBody(fetchMock, 'PATCH', '/api/visits/42/back-office-status')).toEqual({ status: 'INCEPUT' })
   })
 
