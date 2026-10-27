@@ -8,6 +8,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { cn } from '../cn'
 import Button from '../components/Button'
+import { WithAction } from '../components/FormField'
 import Logo from '../components/Logo'
 import PasswordToggle from '../components/PasswordToggle'
 import { controlClasses } from '../formStyles'
@@ -25,8 +26,13 @@ function IconInput({ id, label, icon: Icon, action, ...props }) {
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-400"
         />
-        <input id={id} className={cn(controlClasses, 'h-12 pl-10', action && 'pr-12')} {...props} />
-        {action && <div className="absolute inset-y-0 right-1 flex items-center">{action}</div>}
+        {action ? (
+          <WithAction action={action}>
+            <input id={id} className={cn(controlClasses, 'h-12 pr-12 pl-10')} {...props} />
+          </WithAction>
+        ) : (
+          <input id={id} className={cn(controlClasses, 'h-12 pl-10')} {...props} />
+        )}
       </div>
     </div>
   )

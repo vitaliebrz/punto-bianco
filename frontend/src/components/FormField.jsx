@@ -14,6 +14,17 @@ export function FieldError({ id, children }) {
   )
 }
 
+// Un buton în dreapta unui câmp text (ex. „Arată parola”). Câmpul are nevoie de spațiu în dreapta: `pr-12`.
+// Folosit de FormField (`action`) și de câmpul cu iconiță din pagina de login.
+export function WithAction({ action, children }) {
+  return (
+    <div className="relative">
+      {children}
+      <div className="absolute inset-y-0 right-1 flex items-center">{action}</div>
+    </div>
+  )
+}
+
 // Câmpurile de dată / oră: pe iPhone un câmp gol se afișează complet alb (fără text, fără iconiță),
 // iar valoarea e centrată. Le dăm un text „Alege…” cât sunt goale, iconiță de calendar și text la stânga.
 // Pe calculator, iconița mică a browserului e întinsă (invizibil) peste tot câmpul:
@@ -51,6 +62,8 @@ export default function FormField({
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined
   const datePlaceholder = as === 'input' ? DATE_TYPES[props.type] : undefined
   const isEmptyDate = datePlaceholder && !props.value
+  // butonul din dreapta: doar la câmpurile text (o listă sau o dată au deja iconița lor acolo)
+  const hasAction = Boolean(action) && as === 'input' && !datePlaceholder
 
   const control = (
     <Control
@@ -63,7 +76,7 @@ export default function FormField({
         as === 'select' && 'appearance-none pr-10',
         as === 'textarea' && 'resize-y',
         datePlaceholder && dateControlClasses,
-        action && 'pr-12',
+        hasAction && 'pr-12',
         // gol: ascundem masca browserului („zz.ll.aaaa, --:--”) și arătăm textul nostru; la focus revine masca
         isEmptyDate && 'text-transparent focus:text-ink-900',
       )}
@@ -74,13 +87,8 @@ export default function FormField({
   )
 
   let field = control
-  if (action) {
-    field = (
-      <div className="relative">
-        {control}
-        <div className="absolute inset-y-0 right-1 flex items-center">{action}</div>
-      </div>
-    )
+  if (hasAction) {
+    field = <WithAction action={action}>{control}</WithAction>
   } else if (as === 'select') {
     field = (
       <div className="relative">
