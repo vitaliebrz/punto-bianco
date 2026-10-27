@@ -3,7 +3,11 @@
 // + opțional cazare + opțional transfer + coordonatorul responsabil.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // relationJoins: o vizită cu persoanele, cazarea, transferul și coordonatorul se citește
+  // dintr-o SINGURĂ interogare (JOIN), nu din ~6 interogări una după alta.
+  // Măsurat (plan 06): lista vizitelor 446 ms -> 72 ms, cu rezultate identice. Nu schimbă baza de date.
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {

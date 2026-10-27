@@ -12,7 +12,7 @@
 
 Cerințe din temă care influențează arhitectura:
 - **Responsive:** interfața trebuie să meargă și pe telefon.
-- **Minim 50 de utilizatori simultan:** API-ul folosește un singur client Prisma, iar baza e accesată prin adresa *pooled* din Neon (un „pool” de conexiuni reutilizate).
+- **Minim 50 de utilizatori simultan:** API-ul folosește un singur client Prisma, baza e accesată prin adresa *pooled* din Neon (un „pool” de conexiuni reutilizate), o vizită se citește dintr-o singură interogare (`relationJoins`), iar login-ul nu ține sesiuni pe server (JWT). **Verificat** cu testul de încărcare (`npm run load-test` în `backend`): 50 de utilizatori, 0 erori, 24 de cereri/s; rezultate în [planul 06](planuri/06-test-incarcare.md).
 - **Integrare ulterioară cu Bitrix24 și alte aplicații:** totul trece printr-un API REST (`/api/...`), iar vizitele au un câmp `externalId` pentru ID-ul din sistemul extern.
 - **Doar date inventate:** baza se umple cu un script de seed.
 
@@ -101,7 +101,7 @@ Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile
 - `requireRole(...)`: pe rutele care cer un anumit rol; Admin are acces peste tot.
 
 **Alte protecții:**
-- **Limita de încercări:** 10 login-uri eșuate / 15 minute / IP → 429. IP-ul din `X-Forwarded-For` e luat în considerare doar cu `TRUST_PROXY`.
+- **Limita de încercări:** 10 login-uri eșuate / 15 minute **pe cont** (email + IP) și 100 / 15 minute **pe IP** → 429. Un cont atacat e blocat fără să-i blocheze pe colegii de la același IP (toată clinica are același IP). IP-ul din `X-Forwarded-For` e luat în considerare doar cu `TRUST_PROXY`.
 - **CORS:** API-ul poate fi chemat din browser doar de pe `FRONTEND_URL`.
 - **helmet:** header-ele HTTP de securitate standard.
 - **Corp JSON de maxim 10 KB.**
