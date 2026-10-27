@@ -138,6 +138,17 @@ describe('formularul „Vizită nouă”', () => {
     expect(screen.getByLabelText('Prenume însoțitor')).toHaveAttribute('aria-required', 'true')
   })
 
+  it('câmpurile de dată goale arată „Alege data și ora”, iar textul dispare după alegere', async () => {
+    renderAs(COORDINATOR, '/vizite/noua', coordinatorsRoute)
+    const user = userEvent.setup()
+    const arrival = await screen.findByLabelText('Sosire (data și ora)')
+
+    expect(screen.getAllByText('Alege data și ora')).toHaveLength(2)
+
+    await user.type(arrival, '2026-11-02T14:30')
+    expect(screen.getAllByText('Alege data și ora')).toHaveLength(1)
+  })
+
   it('comutatorul se schimbă dintr-un singur clic, oriunde pe rând (și pe text)', async () => {
     renderAs(COORDINATOR, '/vizite/noua', coordinatorsRoute)
     const user = userEvent.setup()
