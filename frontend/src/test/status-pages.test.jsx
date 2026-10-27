@@ -122,6 +122,21 @@ describe('Cazări', () => {
     expect(screen.queryByRole('button', { name: 'Marchează rezervat' })).not.toBeInTheDocument()
   })
 
+  it('detaliile vizitei fără date medicale (cum le primește managerul de cazări): fără tratament și disponibilitate', async () => {
+    const withoutMedical = {
+      ...VISIT,
+      patients: VISIT.patients.map(({ id, firstName, lastName, isCompanion }) => ({ id, firstName, lastName, isCompanion })),
+    }
+    renderAs(USERS.cazari, '/vizite/42', { 'GET /api/visits/42': json(200, withoutMedical) })
+
+    expect(await screen.findByText('Marco Rossi')).toBeInTheDocument()
+    expect(screen.getByText('Anna Rossi')).toBeInTheDocument()
+    expect(screen.getByText('Studio')).toBeInTheDocument()
+    expect(screen.queryByText('Tratament')).not.toBeInTheDocument()
+    expect(screen.queryByText('Disponibilitate')).not.toBeInTheDocument()
+    expect(screen.queryByText('Fără tratament')).not.toBeInTheDocument()
+  })
+
   it('șoferul nu are acces la pagina de cazări (trimis la calendar)', async () => {
     renderAs(USERS.sofer, '/cazari', { 'GET /api/transfers': json(200, []) })
     expect(await screen.findByRole('heading', { name: 'Calendar transferuri' })).toBeInTheDocument()

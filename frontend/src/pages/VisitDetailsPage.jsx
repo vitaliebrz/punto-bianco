@@ -100,14 +100,17 @@ export default function VisitDetailsPage() {
                         </span>
                       </div>
                     </div>
-                    <dl className="grid gap-4 sm:grid-cols-2">
-                      <Detail label="Tratament">
-                        {person.treatment ?? <span className="text-ink-400">Fără tratament</span>}
-                      </Detail>
-                      <Detail label="Disponibilitate">
-                        {person.availability ?? <span className="text-ink-400">Necompletat</span>}
-                      </Detail>
-                    </dl>
+                    {/* Managerul de cazări primește persoanele fără date medicale: blocul nu apare deloc */}
+                    {'treatment' in person && (
+                      <dl className="grid gap-4 sm:grid-cols-2">
+                        <Detail label="Tratament">
+                          {person.treatment ?? <span className="text-ink-400">Fără tratament</span>}
+                        </Detail>
+                        <Detail label="Disponibilitate">
+                          {person.availability ?? <span className="text-ink-400">Necompletat</span>}
+                        </Detail>
+                      </dl>
+                    )}
                   </li>
                 ))}
               </ul>

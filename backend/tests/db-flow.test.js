@@ -264,13 +264,24 @@ describe.skipIf(!hasDb)('fluxul vizitei (scrie în baza dev, apoi curăță)', (
       expect(res.body.patients[1]).toMatchObject({ isCompanion: true, treatment: null, availability: null });
     });
 
-    it('Managerul de cazări vede detaliile doar pentru vizitele cu cazare (tratamentul e dată medicală)', async () => {
+    it('Managerul de cazări vede detaliile doar pentru vizitele cu cazare și fără date medicale', async () => {
       const withAccommodation = await createVisit({});
       const withoutAccommodation = await createVisit({ accommodation: null });
 
       const allowed = await api('get', `/api/visits/${withAccommodation.body.id}`, 'cazari');
       expect(allowed.status).toBe(200);
-      expect(allowed.body.patients[0].treatment).toBe('Implant (test automat)');
+      expect(allowed.body.accommodation).toMatchObject({ status: 'NEPRELUCRAT' });
+      for (const person of allowed.body.patients) {
+        expect(person).not.toHaveProperty('treatment');
+        expect(person).not.toHaveProperty('availability');
+      }
+
+      // coordonatorul vede în continuare tratamentul și disponibilitatea
+      const full = await api('get', `/api/visits/${withAccommodation.body.id}`, 'coordonator1');
+      expect(full.body.patients[0]).toMatchObject({
+        treatment: 'Implant (test automat)',
+        availability: 'După ora 12:00',
+      });
 
       const hidden = await api('get', `/api/visits/${withoutAccommodation.body.id}`, 'cazari');
       expect(hidden.status).toBe(404);
