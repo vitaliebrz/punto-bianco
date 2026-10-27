@@ -73,7 +73,7 @@ export default function AppLayout() {
       >
         <div className="flex h-16 items-center justify-between px-5">
           <NavLink to="/" className="rounded-lg text-ink-700 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none">
-            <Logo markClassName="h-8 text-mint-500" />
+            <Logo />
           </NavLink>
           <button
             type="button"
@@ -168,7 +168,7 @@ export default function AppLayout() {
             <List size={22} weight="bold" aria-hidden="true" />
           </button>
           <span className="text-ink-700 lg:hidden">
-            <Logo markClassName="h-7 text-mint-500" nameClassName="text-base" />
+            <Logo markClassName="size-9 bg-mint-300" wordmarkClassName="h-3 text-ink-700" />
           </span>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
             {hasBell && <NotificationBell />}
