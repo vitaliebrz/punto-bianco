@@ -81,5 +81,109 @@ La final: PR **`fix: code review findings before deployment`**.
 - Testele cu ora rulează și cu alt fus orar al procesului (`TZ`).
 - Pe telefon: calendarul și formularul cu fusul telefonului schimbat (Setări → Dată și oră → alt oraș) arată aceleași ore ca pe calculator.
 
+## Runda 2 — review complet (fiecare fișier din proiect)
+După primele 10 reparații am rulat un review pe **tot** proiectul: backend, frontend, teste, CI și documentație. N-a găsit probleme critice. Ce urmează se repară pe aceeași ramură, câte un pas pe rând.
+
+### 11. Managerul de cazări primește date medicale (mare)
+- **Problema:** `GET /api/visits/:id` îi trimite managerului de cazări și tratamentul, și disponibilitatea pacienților.
+- **Reparația:**
+  - `serializeVisit(visit, { medical })`: pentru `MANAGER_CAZARI`, persoanele vin fără `treatment` și `availability`;
+  - pagina de detalii nu mai afișează blocul de tratament când acesta lipsește.
+- **Teste:**
+  - integrare: managerul de cazări primește vizita fără tratament, iar coordonatorul o primește cu tratament;
+  - un test unitar pentru `serializeVisit`;
+  - un test frontend pentru pagina de detalii.
+
+### 12. Reguli de acces netestate (mare)
+- `requireAuth`, testat cu Prisma simulat:
+  - utilizator dezactivat → 401;
+  - utilizator șters → 401;
+  - rolul se citește din bază, nu din token.
+- **Matrice rol × rută:** fiecare rol pe fiecare rută protejată → 403 unde n-are acces. De exemplu, șoferul nu vede lista vizitelor, iar contabilul nu poate modifica nimic.
+
+### 13. Sesiunea (mare)
+- **Mai multe tab-uri:** dacă ieși dintr-un tab, celelalte se deconectează și ele. Folosim evenimentul `storage`.
+- **`localStorage` blocat:** tokenul se ține și în memorie, deci login-ul merge până la închiderea paginii.
+- **Cereri blocate:** au o limită de timp de 20 s, apoi apare mesajul „Serverul nu răspunde…”.
+
+### 14. Formular și butoane (medie)
+- **Back office și Cazări:** fiecare card are propria stare „se salvează”. Același buton nu se mai poate trimite de două ori.
+- **Tratamentul însoțitorului:**
+  - e obligatoriu când e bifat (zod);
+  - eroarea apare la câmpul lui.
+- **După o eroare:**
+  - focus pe primul câmp greșit;
+  - eroarea dispare la modificarea câmpului;
+  - erorile fără câmp apar în mesajul general;
+  - data goală → „Câmp obligatoriu”.
+- „Renunță” e blocat cât timp se salvează.
+- `clinicLocalToIso` respinge datele imposibile (luna 13, ora 99).
+
+### 15. Telefon, accesibilitate, mesaje vechi (medie)
+- **Meniul de pe telefon:**
+  - se închide la orice schimbare de pagină;
+  - focusul revine pe butonul care l-a deschis;
+  - conținutul din spate primește `inert`.
+- **Lista coordonatorilor:** derulează la opțiunea activă.
+- **Contrast:** textul `ink-400` devine `ink-500`, peste minimul de accesibilitate.
+- **Mesajul „Vizita a fost înregistrată”:** nu mai reapare la „Înapoi”.
+- **Butonul „Înapoi”:** fără istoric, duce la listă.
+- **Butonul „Reîncearcă”:** nu mai apare la 404.
+- **Răspunsurile întârziate** (calendar, clopoțel): sunt ignorate.
+- **`HomeRedirect`:** nu mai cade pentru un rol fără pagini.
+
+### 16. Siguranța bazei, testele și CI (medie)
+- **`DB_WRITE_HOST`** (doar host-ul bazei dev). Dacă host-ul din `DATABASE_URL` diferă:
+  - seed-ul refuză să ruleze;
+  - testul de integrare se sare;
+  - scriptul de încărcare nu curăță.
+- **Testul de integrare:**
+  - la pornire șterge resturile rulărilor întrerupte;
+  - „citește toate” atinge doar notificările lui.
+- **Scriptul de încărcare:** lista vizitelor cu cazare se umple corect.
+- **Testele frontend:** dau eroare la cereri nesimulate și verifică parametrii din adresă.
+- **CI:**
+  - Node 22;
+  - `prisma validate`;
+  - avertismentele de lint opresc CI-ul;
+  - `engines` în `package.json`;
+  - `SEED_PASSWORD` gol în `.env.example`.
+
+### 17. Documentația (mică)
+- **`docs/arhitectura.md`:** fusul orar, regula managerului de cazări, componentele și arborele de fișiere.
+- **`docs/README.md`:** numărul de teste, `prisma generate` la pornire, versiunea de Node, `DB_WRITE_HOST`.
+- **Planurile vechi:**
+  - linkurile din planul 04;
+  - comenzile PowerShell în planul 06;
+  - notițe acolo unde textul nu mai e valabil.
+- **`frontend/README.md`:** o descriere a proiectului în locul șablonului Vite.
+
+### Mutate în planul 08 (publicarea)
+- `vercel.json` pentru linkurile directe;
+- `TRUST_PROXY` validat strict;
+- build și `prisma migrate deploy` pe Render;
+- Node fixat;
+- refuzul unui `JWT_SECRET` slab;
+- oprire curată la redeploy.
+
+### Limitări notate, fără reparație acum
+- listele nu au paginare: e în regulă pentru volumul unei clinici, dar mai târziu va fi nevoie de un filtru pe perioadă;
+- indexul `Notification(userId, createdAt)`;
+- skip link și câte un `ErrorBoundary` pe fiecare pagină;
+- `initials()` duplicat;
+- regula de lint `exhaustive-deps`.
+
+### Pași și commit-uri, runda 2
+| # | Conținut | Commit propus |
+|---|---|---|
+| 11 | această secțiune | `docs: add full review findings to plan 07` |
+| 12 | problema 11 + teste | `fix(api): hide treatment details from accommodation managers` |
+| 13 | problema 12 | `test(backend): cover role access matrix and inactive users` |
+| 14 | problema 13 + teste | `fix(frontend): sync logout across tabs and keep the session without storage` |
+| 15 | problema 14 + teste | `fix: prevent double status updates and improve form errors` |
+| 16 | problema 15 + teste | `fix(frontend): mobile menu, accessibility and stale responses` |
+| 17 | problema 16 | `test: guard database writes and isolate integration tests` + `ci: run on Node 22 and fail on lint warnings` |
+| 18 | problema 17 + „Ce s-a implementat” | `docs: update architecture, README and plan 07` |
+
 ## Ce s-a implementat / abateri de la plan
 _Se completează la final._
