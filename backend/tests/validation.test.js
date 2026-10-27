@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { loginSchema } from '../src/schemas/auth.js';
 import { validate } from '../src/middleware/validate.js';
 
@@ -50,8 +51,8 @@ describe('loginSchema', () => {
 });
 
 describe('middleware validate()', () => {
-  function run(middleware, body) {
-    const req = { body };
+  function run(middleware, body, query) {
+    const req = { body, query };
     const res = {
       statusCode: 200,
       status(code) {
@@ -82,6 +83,21 @@ describe('middleware validate()', () => {
     expect(res.statusCode).toBe(400);
     expect(res.body.error).toBe('Date invalide');
     expect(res.body.details[0].field).toBe('email');
+  });
+
+  it('source: query -> validează req.query; datele curățate ajung în req.validatedQuery', () => {
+    const schema = z.object({ page: z.coerce.number().int().min(1) }).strict();
+    const middleware = validate(schema, { source: 'query' });
+
+    const { req, nextCalled } = run(middleware, { ignorat: true }, { page: '2' });
+    expect(nextCalled).toBe(true);
+    expect(req.validatedQuery).toEqual({ page: 2 });
+    expect(req.body).toEqual({ ignorat: true }); // corpul nu e atins
+
+    const bad = run(middleware, undefined, { page: '0', extra: 'x' });
+    expect(bad.nextCalled).toBe(false);
+    expect(bad.res.statusCode).toBe(400);
+    expect(bad.res.body.details.map((detail) => detail.field).sort()).toEqual(['', 'page']);
   });
 
   it('date greșite, cu mesaj generic (login): 400 fără detalii', () => {
