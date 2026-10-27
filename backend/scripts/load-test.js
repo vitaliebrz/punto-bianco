@@ -15,7 +15,9 @@ import 'dotenv/config';
 const BASE_URL = (process.env.LOAD_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const USERS = Number(process.env.LOAD_USERS || 50);
 const DURATION_S = Number(process.env.LOAD_DURATION || 60);
-const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.)/.test(BASE_URL);
+// „Local” = exact acest calculator (host-ul întreg, nu doar începutul adresei: „localhost-api.onrender.com”
+// NU e local). Pe orice alt server, inclusiv în rețea (192.168.x), scrierile se pornesc doar cu LOAD_WRITES=1.
+const IS_LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(BASE_URL).hostname);
 const WRITES = (process.env.LOAD_WRITES ?? (IS_LOCAL ? '1' : '0')) === '1';
 const PASSWORD = process.env.SEED_PASSWORD;
 const MARKER = 'TestIncarcare';
