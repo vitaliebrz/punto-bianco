@@ -1,0 +1,280 @@
+/* Calendarul transferurilor (FullCalendar) în culorile brandului.
+   Fișierul NU e în stratul Tailwind: FullCalendar își adaugă propriul CSS fără strat, iar un stil din strat
+   ar pierde în fața lui (de aici veneau butoanele și evenimentele albastre).
+   Culorile sunt cele din @theme (src/index.css): mint-* = menta #98D3C3, ink-* = griul #565555. */
+
+.pb-calendar .fc {
+  --fc-border-color: #e2e1e0; /* ink-200 */
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: #f7f7f6; /* ink-50 */
+  --fc-today-bg-color: #f1f9f6; /* mint-50 */
+  --fc-highlight-color: #e1f3ed; /* mint-100 */
+  --fc-now-indicator-color: #3d8573; /* mint-600 */
+  --fc-list-event-hover-bg-color: #f1f9f6; /* mint-50 */
+
+  --fc-button-text-color: #454444; /* ink-700 */
+  --fc-button-bg-color: #ffffff;
+  --fc-button-border-color: #e2e1e0; /* ink-200 */
+  --fc-button-hover-bg-color: #f7f7f6; /* ink-50 */
+  --fc-button-hover-border-color: #cac9c8; /* ink-300 */
+  --fc-button-active-bg-color: #98d3c3; /* mint-300 */
+  --fc-button-active-border-color: #98d3c3;
+
+  --fc-event-bg-color: #98d3c3;
+  --fc-event-border-color: #6fbea9; /* mint-400 */
+  --fc-event-text-color: #252424; /* ink-900 */
+
+  font-family: var(--font-sans, 'Muller', sans-serif);
+  color: #343333; /* ink-800 */
+}
+
+/* ---------- Bara de sus: titlul și butoanele ---------- */
+
+.pb-calendar .fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pb-calendar .fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 20px;
+}
+
+.pb-calendar .fc .fc-toolbar-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #343333; /* ink-800 */
+  text-transform: capitalize;
+}
+
+.pb-calendar .fc .fc-button {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  box-shadow: none;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.pb-calendar .fc .fc-button-group > .fc-button:not(:first-child) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.pb-calendar .fc .fc-button-group > .fc-button:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.pb-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+.pb-calendar .fc .fc-button-primary:not(:disabled):active {
+  color: #252424; /* ink-900 pe mentă (textul alb ar fi ilizibil) */
+}
+
+.pb-calendar .fc .fc-button:focus,
+.pb-calendar .fc .fc-button-primary:not(:disabled):active:focus,
+.pb-calendar .fc .fc-button-primary:not(:disabled).fc-button-active:focus {
+  box-shadow: none;
+}
+
+.pb-calendar .fc .fc-button:focus-visible {
+  outline: 2px solid #4fa38d; /* mint-500 */
+  outline-offset: 2px;
+  z-index: 2;
+}
+
+.pb-calendar .fc .fc-button-primary:disabled {
+  opacity: 0.5;
+}
+
+.pb-calendar .fc .fc-icon {
+  font-size: 1.2em;
+}
+
+/* ---------- Grila: zilele și orele ---------- */
+
+.pb-calendar .fc .fc-scrollgrid {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pb-calendar .fc .fc-col-header-cell-cushion,
+.pb-calendar .fc .fc-daygrid-day-number {
+  padding: 8px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #565555; /* ink-600 */
+  text-decoration: none;
+}
+
+.pb-calendar .fc .fc-col-header-cell {
+  background: #f7f7f6; /* ink-50 */
+}
+
+/* ziua de azi: numărul pe un cerc mentă */
+.pb-calendar .fc .fc-day-today .fc-daygrid-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  margin: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #98d3c3; /* mint-300 */
+  color: #252424;
+  font-weight: 800;
+}
+
+.pb-calendar .fc .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: #26463f; /* mint-900 */
+  font-weight: 800;
+}
+
+.pb-calendar .fc .fc-timegrid-slot-label-cushion,
+.pb-calendar .fc .fc-timegrid-axis-cushion {
+  font-size: 12px;
+  color: #6e6c6c; /* ink-500 */
+}
+
+.pb-calendar .fc .fc-timegrid-slot {
+  height: 3em;
+}
+
+/* ---------- Evenimentele: Sosire = mentă, Plecare = gri închis ---------- */
+
+.pb-calendar .fc .fc-event {
+  border-radius: 8px;
+  font-family: var(--font-narrow, 'Muller Narrow', 'Muller', sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.pb-calendar .fc .fc-event .fc-event-main {
+  padding: 3px 6px;
+}
+
+.pb-calendar .fc .fc-event-title {
+  white-space: normal;
+}
+
+.pb-calendar .fc .fc-event.transfer-sosire {
+  background: #98d3c3; /* mint-300 */
+  border-color: #6fbea9; /* mint-400 */
+}
+
+.pb-calendar .fc .fc-event.transfer-sosire .fc-event-main {
+  color: #252424; /* ink-900 */
+}
+
+.pb-calendar .fc .fc-event.transfer-plecare {
+  background: #565555; /* ink-600 */
+  border-color: #454444; /* ink-700 */
+}
+
+.pb-calendar .fc .fc-event.transfer-plecare .fc-event-main {
+  color: #ffffff;
+}
+
+/* vederea „Lună”: evenimentele sunt un punct colorat + text */
+.pb-calendar .fc .fc-daygrid-dot-event {
+  padding: 2px 4px;
+  color: #343333;
+}
+
+.pb-calendar .fc .fc-daygrid-dot-event:hover {
+  background: #f1f9f6; /* mint-50 */
+}
+
+.pb-calendar .fc .fc-daygrid-dot-event.transfer-sosire,
+.pb-calendar .fc .fc-daygrid-dot-event.transfer-plecare {
+  background: transparent;
+}
+
+.pb-calendar .fc .fc-daygrid-dot-event.transfer-sosire .fc-daygrid-event-dot {
+  border-color: #4fa38d; /* mint-500 */
+}
+
+.pb-calendar .fc .fc-daygrid-dot-event.transfer-plecare .fc-daygrid-event-dot {
+  border-color: #565555; /* ink-600 */
+}
+
+.pb-calendar .fc .fc-daygrid-dot-event .fc-event-title {
+  font-weight: 500;
+}
+
+/* ---------- Vederea „Listă” (implicită pe telefon) ---------- */
+
+.pb-calendar .fc .fc-list {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.pb-calendar .fc .fc-list-day-cushion {
+  background: #f7f7f6; /* ink-50 */
+}
+
+.pb-calendar .fc .fc-list-day-text,
+.pb-calendar .fc .fc-list-day-side-text {
+  font-size: 14px;
+  font-weight: 800;
+  color: #343333;
+  text-decoration: none;
+  text-transform: capitalize;
+}
+
+.pb-calendar .fc .fc-list-event td {
+  padding: 12px 14px;
+}
+
+.pb-calendar .fc .fc-list-event.transfer-sosire,
+.pb-calendar .fc .fc-list-event.transfer-plecare {
+  background: transparent;
+}
+
+.pb-calendar .fc .fc-list-event-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #252424;
+}
+
+.pb-calendar .fc .fc-list-event.transfer-sosire .fc-list-event-dot {
+  border-color: #4fa38d; /* mint-500 */
+}
+
+.pb-calendar .fc .fc-list-event.transfer-plecare .fc-list-event-dot {
+  border-color: #565555; /* ink-600 */
+}
+
+.pb-calendar .fc .fc-list-empty {
+  background: #ffffff;
+  color: #6e6c6c; /* ink-500 */
+}
+
+/* ---------- Telefon ---------- */
+
+@media (max-width: 640px) {
+  .pb-calendar .fc .fc-toolbar.fc-header-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pb-calendar .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  .pb-calendar .fc .fc-toolbar-title {
+    text-align: center;
+  }
+
+  .pb-calendar .fc .fc-button {
+    padding: 0 10px;
+    font-size: 13px;
+  }
+}

@@ -4,7 +4,7 @@
 
 | Parte | Tehnologie | Publicare |
 |---|---|---|
-| Frontend | React + Vite | Vercel |
+| Frontend | React + Vite + Tailwind CSS v4 | Vercel |
 | Backend (API) | Node.js + Express 5 | Render |
 | Bază de date | PostgreSQL | Neon |
 | Acces la bază | Prisma 6 (schemă + migrări) | — |
@@ -35,18 +35,58 @@ punto-bianco/
 │  │  └─ routes/              auth, users, visits, accommodations, transfers, notifications
 │  └─ .env.example            model pentru variabilele de mediu
 ├─ frontend/
+│  ├─ public/
+│  │  ├─ brand/               logo-ul decupat (măști pentru dinte și text), favicon, iconița pentru telefon
+│  │  └─ fonts/muller/        fontul MULLER (.otf)
 │  └─ src/
+│     ├─ index.css            Tailwind + sistemul de design (@theme: culori, font, umbre, animații)
+│     ├─ fonts.css            declarațiile fontului MULLER
+│     ├─ calendar.css         calendarul (FullCalendar) în culorile brandului
 │     ├─ api.js               singurul loc care vorbește cu backend-ul
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
-│     ├─ components/          AppLayout (antet + meniu), NotificationBell, FormField, StatusBadge…
+│     ├─ components/          piesele comune ale interfeței (vezi „Sistemul de design”)
 │     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar
 │     ├─ navigation.js        ce pagini vede fiecare rol (meniul)
 │     ├─ labels.js, format.js denumiri în română, data și ora în ora clinicii
+│     ├─ formStyles.js, cn.js aspectul comun al câmpurilor, unirea claselor CSS
 │     ├─ test/                teste automate (Vitest + Testing Library)
 │     └─ roles.js             denumirile rolurilor în română
 ├─ .github/workflows/ci.yml   GitHub Actions: lint, teste, build la fiecare PR
 └─ docs/                      documentația (acest folder)
 ```
+
+## Sistemul de design (frontend)
+
+Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile sunt definite **într-un singur loc**, în `@theme` din `frontend/src/index.css`. Toate paginile le folosesc prin clase (`bg-mint-300`, `text-ink-700` etc.).
+
+| Element | Valoare |
+|---|---|
+| Menta brandului | `mint-300` = `#98D3C3`; nuanțele `mint-50` … `mint-900` sunt calculate din ea |
+| Griul brandului | `ink-600` = `#565555`; nuanțele `ink-50` … `ink-950` |
+| Font | **MULLER**: Medium pentru text, ExtraBold pentru titluri; **Muller Narrow** (`font-narrow`) pentru textele din calendar |
+| Iconițe | Phosphor (`@phosphor-icons/react`), importate una câte una (`@phosphor-icons/react/Bell`), ca testele și build-ul să nu încarce toate cele 1.500 de iconițe |
+| Forme | câmpuri și butoane cu colțuri de 12 px, carduri de 16 px, insigne rotunde |
+| Contrast | pe mentă se scrie cu gri foarte închis (~9:1), niciodată cu alb; textul secundar (`ink-500`) are 5,2:1 pe alb |
+
+**Logo-ul** e refăcut din fișierul original (`brand/logo-punto-bianco.png`, alb, făcut pentru fundal închis). Dintele și textul „PUNTO BIANCO” sunt decupate ca **măști** (`public/brand/tooth-mask.png`, `wordmark-mask.png`), deci păstrează desenul și literele originale, dar pot fi colorate cu orice culoare a brandului (componenta `Logo`).
+
+**Componentele comune** (`frontend/src/components/`):
+
+| Componentă | Ce face |
+|---|---|
+| `AppLayout` | cadrul: bara laterală (calculator), bara de sus și meniul glisant (telefon), clopoțelul |
+| `Button`, `Logo`, `StatusBadge`, `PageHeader`, `Panel` | buton (3 variante), logo, insigna de status (culoare + iconiță), antetul paginii, panou cu titlu |
+| `FormField`, `Switch`, `SegmentedControl`, `RadioCards`, `Listbox` | câmpuri de formular: text (cu asterisc la cele obligatorii), comutator, butoane segmentate, carduri selectabile, listă de alegere proprie (coordonatorul) |
+| `FormSection` | secțiune numerotată a unui formular lung |
+| `PageState`, `Skeleton`, `EmptyState`, `Loader`, `ErrorBoundary` | stările unei pagini: schelet la încărcare, eroare cu „Reîncearcă”, listă goală, „Se încarcă…”, mesaj în loc de ecran alb la o eroare neașteptată |
+| `NotificationBell`, `StatusSummary`, `ScrollToTop` | clopoțelul, rezumatul pe statusuri, derularea la începutul paginii la fiecare schimbare de pagină |
+
+**Telefon:**
+- **Meniul** e un panou care glisează din stânga.
+- **Listele:** Vizite e tabel doar de la 1280 px; mai îngust, fiecare vizită e un card.
+- **Câmpurile** au text de 16 px, ca iPhone să nu mărească singur pagina.
+- **Comutatoarele** răspund la prima atingere: tot rândul e ținta, fără așteptarea pentru dublă atingere.
+- **Butoanele formularului** stau la final; sunt lipite jos doar pe ecrane late, cu mouse.
 
 ## Securitate și autentificare
 

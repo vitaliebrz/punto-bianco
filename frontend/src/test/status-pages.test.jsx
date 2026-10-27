@@ -21,6 +21,14 @@ describe('Back office', () => {
     expect(within(await cardOf(42)).getByRole('button')).toHaveTextContent('Început')
     expect(within(await cardOf(43)).getByRole('button')).toHaveTextContent('Finalizat')
     expect(within(await cardOf(44)).queryByRole('button')).not.toBeInTheDocument()
+
+    // rezumatul: câte vizite are fiecare status
+    const summary = screen.getByRole('list', { name: 'Rezumat' })
+    expect(within(summary).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      '1Nepreluat',
+      '1Început',
+      '1Finalizat',
+    ])
   })
 
   it('„Început”: trimite INCEPUT și actualizează cardul', async () => {
@@ -33,7 +41,7 @@ describe('Back office', () => {
     await userEvent.setup().click(within(card).getByRole('button', { name: 'Început' }))
 
     expect(await within(card).findByRole('button', { name: 'Finalizat' })).toBeInTheDocument()
-    expect(within(card).getByText('Început')).toHaveClass('badge')
+    expect(within(card).getByText('Început')).toHaveAttribute('data-status', 'INCEPUT')
     expect(sentBody(fetchMock, 'PATCH', '/api/visits/42/back-office-status')).toEqual({ status: 'INCEPUT' })
   })
 
