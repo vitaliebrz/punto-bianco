@@ -1,0 +1,70 @@
+/* Familia MULLER (Fontfabric), din brand/muller-narrow.zip.
+   Variantele primite: Muller Medium (+ italic) și ExtraBold; Muller Narrow Light, Medium, ExtraBold (+ italic).
+   Nu există Regular (400): Medium acoperă și textul normal (intervalul de grosimi 300-600),
+   iar ExtraBold acoperă titlurile (601-900). Browserul descarcă un fișier doar când pagina îl folosește. */
+
+@font-face {
+  font-family: 'Muller';
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url('/fonts/muller/Muller-Medium.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller';
+  font-style: italic;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url('/fonts/muller/Muller-MediumItalic.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller';
+  font-style: normal;
+  font-weight: 601 900;
+  font-display: swap;
+  src: url('/fonts/muller/Muller-ExtraBold.otf') format('opentype');
+}
+
+/* Muller Narrow: varianta îngustă, pentru texte care trebuie să încapă în spațiu mic (ex. calendarul) */
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: normal;
+  font-weight: 100 399;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-Light.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: italic;
+  font-weight: 100 399;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-LightItalic.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-Medium.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: italic;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-MediumItalic.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: normal;
+  font-weight: 601 900;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-ExtraBold.otf') format('opentype');
+}
+@font-face {
+  font-family: 'Muller Narrow';
+  font-style: italic;
+  font-weight: 601 900;
+  font-display: swap;
+  src: url('/fonts/muller/MullerNarrow-ExtraBoldItalic.otf') format('opentype');
+}

@@ -9,10 +9,10 @@ Fluxul complet funcționează (Ziua 2, PR #4 și #5). Tema cere ca aplicația s�
 - **Redesign complet** al aspectului. Funcțiile, adresele paginilor și textele rămân aceleași; nu adăugăm funcții noi.
 - **Tailwind CSS v4** (cu pluginul de Vite) în locul CSS-ului scris de mână.
 - **Doar mod luminos** (fără dark mode).
-- **Fontul: toată familia MULLER Trial** (12 grosimi + italic), din `brand/Muller (1).zip`.
+- **Fontul: MULLER**, din `brand/muller-narrow.zip`: Muller Medium (+ italic) și ExtraBold; Muller Narrow Light, Medium, ExtraBold (+ italic). _Prima arhivă (MULLER Trial) a fost abandonată, vezi mai jos._
 - **Logo-ul:** `brand/logo-punto-bianco.png`.
 
-**⚠ Licența fontului (asumată de tine):** MULLER Trial are licență *Fontfabric Trial EULA 1.0*. Aceasta permite doar uz necomercial și testare, interzice paginile web publice și redistribuirea fișierelor fără acordul Fontfabric. Repo-ul e public, iar aplicația va fi publicată, deci folosirea încalcă licența. Ți-am explicat riscul, iar tu ai ales această variantă. Varianta liberă (MULLER Demo) are doar ExtraBold și Thin. Fișierele fontului nu se modifică; licența cere păstrarea datelor despre autor din ele.
+**De ce nu MULLER Trial:** varianta *Trial* (din `brand/Muller (1).zip`) înlocuiește intenționat unele caractere (ă, ș, ț, î, @ și punctele din câmpul de parolă) cu semnul „TRIAL FONT”, deci textele românești și adresele de email nu se pot citi; licența ei interzicea și repo-ul public și site-ul public. Fișierele din `muller-narrow.zip` au toate diacriticele și @ (verificat desenând textul cu fiecare font). **Arhiva nu conține un fișier de licență**; dreptul de folosire al acestor fișiere e asumat de tine, la fel ca riscul discutat pentru varianta Trial.
 
 ## Cum arată (direcția de design)
 **Aplicație internă de lucru pentru echipa unei clinici stomatologice, folosită zilnic, și pe telefon (șoferul).** Stilul e calm și „medical-premium”: mult alb, menta brandului ca accent, gri închis pentru text, densitate medie. Animațiile sunt discrete și apar doar ca răspuns la acțiuni (apăsare, deschidere de meniu, schimbare de status).
@@ -30,7 +30,7 @@ Fluxul complet funcționează (Ziua 2, PR #4 și #5). Tema cere ca aplicația s�
 
 - **Contrast:** pe mentă nu scriem cu alb (ar fi ilizibil); butonul principal are text gri foarte închis. Toate textele respectă WCAG AA.
 - **Forme:** câmpuri și butoane cu colțuri de 12 px, carduri și panouri de 16 px, insignele complet rotunjite. Regula e aceeași peste tot.
-- **Font:** MULLER. Text normal cu Regular (400), etichete cu Medium (500), titluri cu Bold (700) și ExtraBold (800). Se declară toate cele 12 grosimi + italic, dar browserul descarcă doar ce folosește pagina (~22 KB pe grosime).
+- **Font:** MULLER. Nu există Regular (400), deci Medium acoperă textul normal și etichetele (grosimi 300-600), iar ExtraBold titlurile (601-900). Muller Narrow (`font-narrow`) e pentru texte care trebuie să încapă în spațiu mic. Fișiere `.otf` (~75-90 KB fiecare); browserul descarcă doar ce folosește pagina.
 - **Iconițe:** `@phosphor-icons/react`, o singură familie, aceeași grosime peste tot.
 - **Logo:** PNG-ul are dintele gri foarte deschis (`#E2E3E4`), aproape invizibil pe alb. Îl decupez (fără spațiul gol din jur) și îl folosesc ca **mască CSS**, așa că se poate colora cu orice culoare a brandului (gri închis, mentă sau alb). Din el fac și iconița din tabul browserului (favicon) și iconița de pe telefon.
 
@@ -76,7 +76,7 @@ Fluxul complet funcționează (Ziua 2, PR #4 și #5). Tema cere ca aplicația s�
 | # | Ce fac eu | Commit propus |
 |---|---|---|
 | 1 | acest plan + cuprinsul `docs/README.md` | `docs: add plan 05 (brand design)` |
-| 2 | fonturile MULLER (24 fișiere `.woff2`) în `frontend/public/fonts/muller/`; logo decupat, favicon și iconița pentru telefon în `frontend/public/brand/`; `brand/` (arhivele sursă) exclus din git | `feat(frontend): add Muller font family and logo assets` |
+| 2 | fonturile MULLER (9 fișiere `.otf`) în `frontend/public/fonts/muller/`; logo decupat, favicon și iconița pentru telefon în `frontend/public/brand/`; `brand/` (materialele sursă) exclus din git | `feat(frontend): add Muller fonts and logo assets` |
 | 3 | Tailwind v4 (`tailwindcss`, `@tailwindcss/vite`), `@theme` cu culori, font și forme; Phosphor | `chore(frontend): set up Tailwind CSS v4 and brand design tokens` |
 | 4 | componente comune: `Button`, `StatusBadge`, `Skeleton`, `EmptyState`, `ErrorState`, `Logo`, `FormField`, `Switch`, `SegmentedControl` | `feat(frontend): add shared UI components` |
 | 5 | cadrul aplicației: bara laterală, bara de sus, meniul de pe telefon, clopoțelul | `feat(frontend): redesign app shell and notifications bell` |

@@ -148,6 +148,10 @@ vite.config.ts.timestamp-*
 # Turbo Repo
 .turbo
 
+# Materialele de brand primite (arhiva fonturilor, logo-ul original).
+# În aplicație se folosesc copiile pregătite din frontend/public/ (fonts/, brand/).
+/brand/
+
 # OS / editor
 .DS_Store
 Thumbs.db
