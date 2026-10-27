@@ -1,5 +1,5 @@
 // Meniul și prima pagină pentru fiecare rol, clopoțelul de notificări, textul din calendar.
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { menuFor } from '../navigation'
@@ -59,6 +59,24 @@ describe('meniul pe roluri', () => {
     expect(within(menu).getAllByRole('link').map((link) => link.textContent)).toEqual(
       menuLabels(user.role),
     )
+  })
+})
+
+describe('derularea la schimbarea paginii', () => {
+  it('pagina nouă se deschide de sus, nu de unde rămăsese pagina anterioară', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo')
+    renderAs(USERS.coordonator, '/vizite', {
+      'GET /api/visits': json(200, []),
+      'GET /api/users/coordinators': json(200, []),
+    })
+    await screen.findByRole('heading', { name: 'Vizite' })
+    scrollTo.mockClear()
+
+    const menu = screen.getByRole('navigation', { name: 'Meniu' })
+    await userEvent.setup().click(within(menu).getByRole('link', { name: 'Vizită nouă' }))
+
+    expect(await screen.findByRole('heading', { name: 'Vizită nouă' })).toBeInTheDocument()
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
   })
 })
 
