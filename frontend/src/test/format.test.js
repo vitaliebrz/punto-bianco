@@ -1,6 +1,6 @@
 // Ora clinicii (Europe/Chisinau): afișare și citirea orei din formular, oricare ar fi fusul orar al calculatorului.
 import { describe, expect, it } from 'vitest'
-import { clinicLocalToIso, formatDateTime, isoToClinicLocal } from '../format'
+import { clinicLocalToIso, formatDateTime } from '../format'
 
 describe('clinicLocalToIso: ora din formular e ora clinicii', () => {
   it.each([
@@ -20,10 +20,9 @@ describe('clinicLocalToIso: ora din formular e ora clinicii', () => {
     expect(clinicLocalToIso('mâine')).toBe('')
   })
 
-  it('dus-întors: ISO -> câmp -> ISO dă aceeași oră, iar afișarea arată ce s-a introdus', () => {
+  it('ora salvată se afișează exact cum a fost introdusă (și în jurul schimbării orei)', () => {
     for (const local of ['2026-11-02T14:30', '2026-07-10T10:00', '2026-03-29T04:30', '2026-10-25T05:00']) {
       const iso = clinicLocalToIso(local)
-      expect(isoToClinicLocal(iso)).toBe(local)
       const [date, time] = local.split('T')
       const [year, month, day] = date.split('-')
       expect(formatDateTime(iso)).toBe(`${day}.${month}.${year} ${time}`)

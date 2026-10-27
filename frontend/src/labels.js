@@ -31,8 +31,14 @@ export const accommodationCostLabel = ({ isFree, freeDays }) =>
 export const transferCostLabel = (isFree) => (isFree ? 'Gratuit' : 'Contra cost')
 
 // Câte elemente are fiecare status: countByStatus(vizite, (v) => v.backOfficeStatus) -> { NEPRELUAT: 3, … }
-export const countByStatus = (items, statusOf) =>
-  items.reduce((counts, item) => ({ ...counts, [statusOf(item)]: (counts[statusOf(item)] ?? 0) + 1 }), {})
+export function countByStatus(items, statusOf) {
+  const counts = {}
+  for (const item of items) {
+    const status = statusOf(item)
+    counts[status] = (counts[status] ?? 0) + 1
+  }
+  return counts
+}
 
 export const fullName = (person) => `${person.firstName} ${person.lastName}`
 

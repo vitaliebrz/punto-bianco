@@ -58,10 +58,3 @@ export function clinicLocalToIso(localValue) {
   instant = wallClockAsUtc - clinicOffsetMs(new Date(instant))
   return new Date(instant).toISOString()
 }
-
-// Inversul: ISO în UTC -> „2026-11-02T14:30” în ora clinicii (pentru un câmp datetime-local)
-export function isoToClinicLocal(iso) {
-  if (!iso) return ''
-  const p = parts(iso)
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`
-}
