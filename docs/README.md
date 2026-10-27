@@ -24,6 +24,8 @@ Local se lucrează **doar** pe ramura Neon `dev`, o copie separată a bazei. Ram
 
 Adresele ramurii `dev` le iei din consola Neon: **Connect** → Branch: **`dev`**.
 
+**Atenție la creare:** opțiunea **Auto-delete** a ramurii trebuie lăsată pe **Never**. Cu „Auto-delete after 1 day”, Neon șterge ramura a doua zi, iar backend-ul răspunde la orice cerere cu „Eroare internă” (în log: `Authentication failed against database server`). Dacă se întâmplă, creezi din nou ramura `dev` din ramura principală (datele se copiază) și actualizezi `DATABASE_URL` și `DIRECT_URL`.
+
 ### Backend
 ```powershell
 cd backend
@@ -77,6 +79,18 @@ npm run dev                 # pornește pe http://localhost:5173
 
 Opțional, în `frontend/.env` (vezi `frontend/.env.example`): `VITE_API_URL`, adresa backend-ului. Dacă lipsește, se folosește `http://localhost:3000`.
 
+### Testare pe telefon (în aceeași rețea Wi-Fi)
+1. Afli adresa calculatorului în rețea (ex. `192.168.8.116`): `ipconfig` → „IPv4 Address” la Wi-Fi.
+2. Rețeaua Wi-Fi trebuie să fie **Privată** (Setări → Rețea și internet → Wi-Fi → Tip profil de rețea). Când Windows întreabă, permiți **Node.js** în rețelele private.
+3. `frontend/.env.local` (ignorat de git): `VITE_API_URL=http://<adresa>:3000`.
+4. `backend/.env`: `FRONTEND_URL="http://<adresa>:5173"`.
+5. Pornești backend-ul (`npm run dev`) și frontend-ul cu `npm run dev -- --host`.
+6. Pe telefon deschizi `http://<adresa>:5173`; pe calculator folosești tot această adresă, nu `localhost`.
+
+După testare: `FRONTEND_URL="http://localhost:5173"` la loc și ștergi `frontend/.env.local`.
+
+**Dacă backend-ul nu ajunge la Neon** („Can't reach database server”), deși pe alt calculator merge: unele rețele de acasă au IPv6 care nu duce până la Neon. Se rezolvă dezactivând IPv6 pe adaptorul Wi-Fi (`ncpa.cpl` → Wi-Fi → Proprietăți → debifezi „Internet Protocol Version 6”) sau repornind routerul.
+
 ### Vizualizarea datelor
 ```powershell
 cd backend
@@ -90,7 +104,7 @@ cd backend
 npm test            # 213 teste: validare, roluri, API, notificări, calendar, integrare cu baza (Neon dev)
 
 cd frontend
-npm test            # 39 de teste: login, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
+npm test            # 46 de teste: login, formular, liste, butoane de status, meniu, clopoțel, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
@@ -105,10 +119,10 @@ npm test            # 39 de teste: login, formular, liste, butoane de status, me
 | backend | `tests/transfer-events.test.js` | evenimentele de calendar: sosire, plecare, dus-întors, interval | nu |
 | backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
 | backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane | **da**, scrie și **șterge** la final |
-| frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, sesiunea după refresh (token valid / expirat / server oprit) | nu |
-| frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (bife, date trimise, erori lângă câmpuri), lista vizitelor | nu |
-| frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, conflict 409, doar-vizualizare | nu |
-| frontend | `src/test/navigation.test.jsx` | meniul și prima pagină pe roluri, clopoțelul, textul din calendar | nu |
+| frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, butonul care arată parola, sesiunea după refresh (token valid / expirat / server oprit) | nu |
+| frontend | `src/test/visit-form.test.jsx` | formularul „Vizită nouă” (comutatoare, câmpuri obligatorii, date trimise, erori lângă câmpuri, câmpuri de dată, lista coordonatorilor), lista vizitelor | nu |
+| frontend | `src/test/status-pages.test.jsx` | Back office și Cazări: butoanele pe status, rezumatul, conflict 409, doar-vizualizare | nu |
+| frontend | `src/test/navigation.test.jsx` | meniul și prima pagină pe roluri, derularea la începutul paginii, clopoțelul, textul din calendar | nu |
 
 **Testele de integrare** (`db.test.js`, `db-flow.test.js`):
 - au nevoie de `backend/.env` cu baza Neon `dev` și de datele din seed (`npm run seed`);

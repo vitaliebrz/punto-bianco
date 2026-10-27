@@ -1,6 +1,6 @@
 # Plan 05 — Ziua 3, partea 1: design (brand, Tailwind, redesign complet)
 
-**Ziua 3** · Ramura: `feature/brand-design` · Status: **în lucru**
+**Ziua 3** · Ramura: `feature/brand-design` · Status: **finalizat**
 
 ## Context
 Fluxul complet funcționează (Ziua 2, PR #4 și #5). Tema cere ca aplicația să arate bine și pe telefon, să folosească logo-ul și culorile companiei și toată familia de fonturi MULLER. Acum aspectul e minimal (CSS scris de mână, fără logo, font de sistem).
@@ -112,4 +112,37 @@ Fluxul complet funcționează (Ziua 2, PR #4 și #5). Tema cere ca aplicația s�
 4. Fonturile: în DevTools → Network se încarcă doar grosimile folosite; textele cu ă â î ș ț arată corect.
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+
+### Rezultat
+- **Toate ecranele refăcute** pe Tailwind v4, cu sistemul de design al brandului: login, cadrul aplicației, Vizite, Detalii, Vizită nouă, Back office, Cazări, Calendar și clopoțelul. CSS-ul vechi (`legacy.css`) a fost șters.
+- **Fontul MULLER** (Medium, ExtraBold și Muller Narrow) e folosit în toată aplicația.
+- **Logo-ul original** e refăcut fidel: cercul cu dintele și textul „PUNTO BIANCO” cu majuscule, cu literele originale.
+- **Teste:** 46 în frontend (40 înainte de acest plan), toate trec; lint și build fără avertismente. Backend-ul nu s-a schimbat.
+- **Verificat manual** pe calculator și pe un telefon real (iPhone, prin rețeaua locală).
+
+### Abateri
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| MULLER Trial (24 de fișiere `.woff2`) | MULLER din `muller-narrow.zip` (9 fișiere `.otf`) | varianta Trial înlocuiește ă, ș, ț, î, @ și punctele parolei cu „TRIAL FONT” (login-ul nu se putea folosi); vezi „De ce nu MULLER Trial”. Între timp s-a încercat și Plus Jakarta Sans (Google), apoi s-a revenit la MULLER, cerut explicit de temă. Fonturile Trial au fost scoase și din istoricul ramurii, înainte de publicare |
+| Griul brandului = `ink-500` | `ink-600` = `#565555`; `ink-500` = `#6E6C6C` | `ink-500` e folosit pentru textul secundar și avea nevoie de contrast mai bun |
+| Logo: doar dintele, decupat | Dintele **și** textul „PUNTO BIANCO” din original, ca măști; cercul refăcut în CSS | logo-ul original e alb (pentru fundal închis): textul și cercul nu se vedeau pe alb și scăpaseră la decupare |
+| Calendarul la pasul 10 | Refăcut imediat după pasul 5, într-un fișier separat (`calendar.css`) | CSS-ul FullCalendar câștiga în fața stilurilor din stratul Tailwind (butoane și evenimente albastre) |
+| Login: doar formularul | + buton cu ochi pentru a arăta / ascunde parola | cerut la testare |
+| Formular: butoanele lipite jos pe telefon | Pe telefon și tabletă stau la final; lipite jos doar pe ecrane late, cu mouse | pe telefon, bara lipită stătea deasupra tastaturii și acoperea câmpurile |
+| Coordonatorul: listă `<select>` | Listă proprie (`Listbox`), cu inițiale și tastatură | cerut la testare: lista standard arăta diferit de restul formularului |
+| — | Asterisc roșu la câmpurile obligatorii (și `aria-required`) | cerut la testare |
+| — | Rezumat pe statusuri pe Back office și Cazări (doar informativ) | o privire de ansamblu pentru echipă; nu e o funcție nouă (fără filtre) |
+| Pasul 11 (teste) separat | Testele adaptate la fiecare pas, în același commit cu pagina | fiecare commit rămâne cu testele trecute |
+
+### Reparații găsite la testarea pe telefon
+| Problemă | Cauză | Reparație |
+|---|---|---|
+| Pagina se mărea singură la login și rămânea mărită | Safari mărește pagina la câmpurile cu text sub 16 px | câmpurile au 16 px pe telefon |
+| Comutatoarele nu mergeau din prima atingere | țintă mică + așteptarea pentru „dublă atingere = mărire” | tot rândul e ținta; `touch-action: manipulation` |
+| Câmpurile de dată erau complet albe pe iPhone | Safari nu afișează nimic într-un câmp de dată gol | text „Alege data și ora” + iconiță de calendar |
+| Pagina nouă se deschidea derulată jos | aplicația schimbă paginile fără reîncărcare | `ScrollToTop` la fiecare schimbare de adresă |
+| Ecran alb pe telefon | `scrollTo({ behavior: 'instant' })` dă eroare în Safari mai vechi | `scrollTo(0, 0)` + `ErrorBoundary` (mesaj în loc de ecran alb) |
+| Rânduri suprapuse în lista Vizite | textul nu se putea îngusta în coloană | textul trece pe rândul următor; tabelul doar de la 1280 px |
+
+### Incident: baza `dev` ștearsă automat
+Ramura Neon `dev` fusese creată cu **Auto-delete after 1 day**. După ștergere, backend-ul răspundea „Eroare internă” la orice cerere (`Authentication failed against database server`). Ramura a fost refăcută din cea principală, cu Auto-delete pe **Never**. Nota a fost adăugată în `docs/README.md`.
