@@ -7,6 +7,7 @@ import { CheckCircle } from '@phosphor-icons/react/CheckCircle'
 import { ClipboardText } from '@phosphor-icons/react/ClipboardText'
 import { UsersThree } from '@phosphor-icons/react/UsersThree'
 import { Van } from '@phosphor-icons/react/Van'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import PageHeader from '../components/PageHeader'
@@ -42,8 +43,15 @@ export default function VisitDetailsPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { data: visit, error, loading, reload } = useApiData(`/api/visits/${id}`)
-  // Mesajul de după înregistrare (vine din formular)
-  const justCreated = location.state?.created === true
+
+  // Mesajul de după înregistrare (vine din formular, prin starea din istoricul browserului).
+  // Ținem minte pentru ce vizită l-am primit, apoi ștergem marcajul din istoric:
+  // altfel mesajul ar reapărea la F5 sau la „Înapoi”, deși nu s-a înregistrat nimic nou.
+  const [createdVisitId] = useState(() => (location.state?.created === true ? id : null))
+  const justCreated = createdVisitId === id
+  useEffect(() => {
+    if (location.state?.created) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   return (
     <section className="flex flex-col gap-6">

@@ -29,6 +29,7 @@ const targetOf = (item) => (item.visitId ? `/vizite/${item.visitId}` : (PAGE_BY_
 export default function NotificationBell() {
   const [data, setData] = useState({ unreadCount: 0, items: [] })
   const [open, setOpen] = useState(false)
+  const [actionError, setActionError] = useState('')
   const wrapperRef = useRef(null)
   const navigate = useNavigate()
 
@@ -85,11 +86,20 @@ export default function NotificationBell() {
   }
 
   async function markAllRead() {
+    setActionError('')
     try {
       await apiFetch('/api/notifications/read-all', { method: 'POST' })
+    } catch (err) {
+      // altfel eroarea ar rămâne neprinsă, iar utilizatorul n-ar afla că marcarea nu a reușit
+      setActionError(`Notificările nu au putut fi marcate ca citite. ${err.message}`)
     } finally {
       load()
     }
+  }
+
+  function toggle() {
+    setActionError('')
+    setOpen((value) => !value)
   }
 
   const { unreadCount, items } = data
@@ -100,7 +110,7 @@ export default function NotificationBell() {
         type="button"
         aria-label={`Notificări (${unreadCount} necitite)`}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
         className={cn(
           'relative flex size-10 items-center justify-center rounded-xl text-ink-600 transition-colors',
           'hover:bg-ink-100 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none',
@@ -138,6 +148,12 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
+
+          {actionError && (
+            <p role="alert" className="border-b border-red-100 bg-red-50 px-4 py-2.5 text-[13px] font-medium text-red-800">
+              {actionError}
+            </p>
+          )}
 
           {items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
