@@ -13,7 +13,7 @@ const ROLES = ['ADMIN', 'COORDONATOR', 'BACK_OFFICE', 'MANAGER_CAZARI', 'SOFER',
 const db = vi.hoisted(() => ({ users: {} }));
 vi.mock('../src/lib/prisma.js', () => ({
   default: {
-    user: { findUnique: async ({ where }) => db.users[where.id] ?? null },
+    user: { findUnique: async ({ where }) => db.users[where.id] ?? null, findMany: async () => [] },
     visit: { findMany: async () => [] },
     accommodation: { findMany: async () => [] },
   },
@@ -38,6 +38,12 @@ const ROUTES = [
   { method: 'patch', path: '/api/accommodations/1/status', allowed: ['MANAGER_CAZARI'], status: 400 },
   // fără from/to -> 400
   { method: 'get', path: '/api/transfers', allowed: ['SOFER', 'CONTABIL', 'CONTROL_CALITATE'], status: 400 },
+  // gestionarea utilizatorilor: doar Admin
+  { method: 'get', path: '/api/users', allowed: [], status: 200 },
+  { method: 'post', path: '/api/users', allowed: [], status: 400 },
+  { method: 'patch', path: '/api/users/1/active', allowed: [], status: 400 },
+  // lista coordonatorilor (formularul vizitei) rămâne deschisă oricui e conectat
+  { method: 'get', path: '/api/users/coordinators', allowed: ROLES, status: 200 },
 ];
 
 const CASES = ROUTES.flatMap((route) =>
