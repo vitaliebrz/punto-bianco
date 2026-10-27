@@ -79,6 +79,22 @@ describe('autentificare', () => {
     expect(await screen.findByText('Doar vizualizare.')).toBeInTheDocument()
   })
 
+  it('butonul cu ochi arată și ascunde parola', async () => {
+    mockFetch({})
+    renderApp('/login')
+    const user = userEvent.setup()
+    const password = screen.getByLabelText('Parolă')
+    await user.type(password, 'Demo1234!')
+    expect(password).toHaveAttribute('type', 'password')
+
+    await user.click(screen.getByRole('button', { name: 'Arată parola' }))
+    expect(password).toHaveAttribute('type', 'text')
+    expect(password).toHaveValue('Demo1234!')
+
+    await user.click(screen.getByRole('button', { name: 'Ascunde parola' }))
+    expect(password).toHaveAttribute('type', 'password')
+  })
+
   it('Ieșire: șterge token-ul și revine la login', async () => {
     renderAs(USERS.admin, '/', emptyLists)
 

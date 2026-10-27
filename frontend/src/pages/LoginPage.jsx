@@ -1,6 +1,37 @@
 import { useState } from 'react'
+import { CircleNotch } from '@phosphor-icons/react/CircleNotch'
+import { EnvelopeSimple } from '@phosphor-icons/react/EnvelopeSimple'
+import { Eye } from '@phosphor-icons/react/Eye'
+import { EyeSlash } from '@phosphor-icons/react/EyeSlash'
+import { LockSimple } from '@phosphor-icons/react/LockSimple'
+import { SignIn } from '@phosphor-icons/react/SignIn'
+import { WarningCircle } from '@phosphor-icons/react/WarningCircle'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { cn } from '../cn'
+import Button from '../components/Button'
+import Logo from '../components/Logo'
+import { controlClasses } from '../formStyles'
+
+// Câmp cu iconiță în stânga (email, parolă); `action` = un buton în dreapta câmpului
+function IconInput({ id, label, icon: Icon, action, ...props }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-sm font-medium text-ink-700">
+        {label}
+      </label>
+      <div className="relative">
+        <Icon
+          size={18}
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-400"
+        />
+        <input id={id} className={cn(controlClasses, 'h-12 pl-10', action && 'pr-12')} {...props} />
+        {action && <div className="absolute inset-y-0 right-1 flex items-center">{action}</div>}
+      </div>
+    </div>
+  )
+}
 
 export default function LoginPage() {
   const { user, login } = useAuth()
@@ -8,6 +39,7 @@ export default function LoginPage() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -32,48 +64,99 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-page">
-      <div className="login-card">
-        <h1 className="brand">Punto Bianco</h1>
-        <p className="subtitle">Conectează-te la contul tău</p>
+    <main className="grid min-h-dvh bg-white lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      {/* Calculator: panoul brandului, cu logo-ul original (alb, făcut pentru fundal închis) */}
+      <section className="relative hidden flex-col items-center justify-center overflow-hidden bg-ink-600 px-12 lg:flex">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgb(152_211_195/0.22),transparent_58%)]"
+        />
+        <div className="relative flex flex-col items-center gap-8 text-center">
+          <Logo layout="stack" markClassName="size-40 bg-white" wordmarkClassName="h-8 text-white" />
+          <p className="max-w-xs text-[15px] leading-relaxed text-ink-200">
+            Organizarea vizitei fiecărui pacient: tratament, transfer de la aeroport și cazare.
+          </p>
+        </div>
+      </section>
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
+      {/* Formularul */}
+      <section className="flex items-center justify-center px-5 py-10 sm:px-8">
+        <div className="w-full max-w-sm">
+          {/* Telefon: logo-ul deasupra formularului */}
+          <div className="mb-10 lg:hidden">
+            <Logo />
+          </div>
+
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink-800">Conectează-te la contul tău</h1>
+          <p className="mt-2 text-[15px] text-ink-500">Folosește adresa de email și parola primite de la clinică.</p>
+
+          <form className="mt-8 flex flex-col gap-5" onSubmit={handleSubmit}>
+            <IconInput
               id="email"
+              label="Email"
+              icon={EnvelopeSimple}
               type="email"
               autoComplete="username"
+              placeholder="nume@puntobianco.demo"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
             />
-          </div>
 
-          <div className="field">
-            <label htmlFor="password">Parolă</label>
-            <input
+            <IconInput
               id="password"
-              type="password"
+              label="Parolă"
+              icon={LockSimple}
+              type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              action={
+                <button
+                  type="button"
+                  aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
+                  aria-pressed={showPassword}
+                  aria-controls="password"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="flex size-10 items-center justify-center rounded-lg text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-800 focus-visible:ring-2 focus-visible:ring-mint-500 focus-visible:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeSlash size={20} aria-hidden="true" />
+                  ) : (
+                    <Eye size={20} aria-hidden="true" />
+                  )}
+                </button>
+              }
             />
-          </div>
 
-          {error && (
-            <p className="alert-error" role="alert">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p
+                role="alert"
+                className="flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-3 text-sm font-medium text-red-800 ring-1 ring-red-100 ring-inset"
+              >
+                <WarningCircle size={18} weight="bold" aria-hidden="true" className="mt-px shrink-0" />
+                {error}
+              </p>
+            )}
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Se conectează…' : 'Intră în cont'}
-          </button>
-        </form>
-      </div>
+            <Button type="submit" className="mt-1 h-12 w-full" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <CircleNotch size={18} weight="bold" aria-hidden="true" className="animate-spin" />
+                  Se conectează…
+                </>
+              ) : (
+                <>
+                  Intră în cont
+                  <SignIn size={18} weight="bold" aria-hidden="true" />
+                </>
+              )}
+            </Button>
+          </form>
+        </div>
+      </section>
     </main>
   )
 }
