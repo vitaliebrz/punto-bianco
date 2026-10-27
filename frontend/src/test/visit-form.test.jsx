@@ -133,7 +133,7 @@ describe('lista vizitelor', () => {
     expect(within(card).getByText('Studio')).toBeInTheDocument()
     expect(within(card).getByText('Dus-întors')).toBeInTheDocument()
     expect(within(card).getByText('02.11.2026 14:30')).toBeInTheDocument()
-    const header = screen.getByRole('heading', { name: 'Vizite' }).parentElement
+    const header = screen.getByRole('heading', { name: 'Vizite' }).closest('header')
     expect(within(header).getByRole('link', { name: 'Vizită nouă' })).toHaveAttribute('href', '/vizite/noua')
   })
 
