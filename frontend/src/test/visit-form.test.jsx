@@ -138,6 +138,20 @@ describe('formularul „Vizită nouă”', () => {
     expect(screen.getByLabelText('Prenume însoțitor')).toHaveAttribute('aria-required', 'true')
   })
 
+  it('comutatorul se schimbă dintr-un singur clic, oriunde pe rând (și pe text)', async () => {
+    renderAs(COORDINATOR, '/vizite/noua', coordinatorsRoute)
+    const user = userEvent.setup()
+    const toggle = await screen.findByRole('switch', { name: 'Vine cu însoțitor' })
+
+    await user.click(screen.getByText('Vine cu însoțitor'))
+    expect(toggle).toBeChecked()
+    expect(screen.getByLabelText('Prenume însoțitor')).toBeInTheDocument()
+
+    await user.click(screen.getByText('Vine cu însoțitor'))
+    expect(toggle).not.toBeChecked()
+    expect(screen.queryByLabelText('Prenume însoțitor')).not.toBeInTheDocument()
+  })
+
   it('lista coordonatorilor: se deschide, se alege cu mouse-ul sau cu tastatura', async () => {
     const fetchMock = renderAs(COORDINATOR, '/vizite/noua', {
       ...coordinatorsRoute,

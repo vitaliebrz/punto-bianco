@@ -74,6 +74,17 @@
     font-family: var(--font-sans);
   }
 
+  /* Pe telefon, atingerea se aplică imediat: fără așteptarea pentru „dublă atingere = mărire” */
+  a,
+  button,
+  input,
+  label,
+  select,
+  textarea,
+  [role='option'] {
+    touch-action: manipulation;
+  }
+
   ::selection {
     background-color: var(--color-mint-200);
     color: var(--color-ink-900);
