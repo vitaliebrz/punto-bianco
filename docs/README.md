@@ -12,6 +12,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   5. [Design: brand, Tailwind, redesign complet](planuri/05-design-brand.md)
   6. [Test de încărcare: 50 de utilizatori în același timp](planuri/06-test-incarcare.md)
   7. [Code review înainte de publicare: reparații](planuri/07-code-review-reparatii.md)
+  8. [Gestionarea utilizatorilor (Admin)](planuri/08-gestionare-utilizatori.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
