@@ -27,12 +27,15 @@ router.get('/', requireRole(...LIST_ROLES), async (req, res) => {
   res.json(visits.map(serializeVisit));
 });
 
-// Detaliile unei vizite (și Managerul de cazări, pentru cererile lui)
+// Detaliile unei vizite (și Managerul de cazări, dar doar pentru vizitele cu cerere de cazare:
+// detaliile conțin tratamentul pacienților, de care nu are nevoie pentru celelalte vizite).
 router.get('/:id', requireRole(...LIST_ROLES, 'MANAGER_CAZARI'), async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: 'Id invalid' });
 
-  const visit = await prisma.visit.findUnique({ where: { id }, include: visitInclude });
+  const where = req.user.role === 'MANAGER_CAZARI' ? { id, accommodation: { isNot: null } } : { id };
+  // Vizita fără cazare arată pentru Managerul de cazări ca una inexistentă (404), fără să dezvăluie că există
+  const visit = await prisma.visit.findFirst({ where, include: visitInclude });
   if (!visit) return res.status(404).json({ error: 'Vizita nu există' });
 
   res.json(serializeVisit(visit));

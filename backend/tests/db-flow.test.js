@@ -264,6 +264,23 @@ describe.skipIf(!hasDb)('fluxul vizitei (scrie în baza dev, apoi curăță)', (
       expect(res.body.patients[1]).toMatchObject({ isCompanion: true, treatment: null, availability: null });
     });
 
+    it('Managerul de cazări vede detaliile doar pentru vizitele cu cazare (tratamentul e dată medicală)', async () => {
+      const withAccommodation = await createVisit({});
+      const withoutAccommodation = await createVisit({ accommodation: null });
+
+      const allowed = await api('get', `/api/visits/${withAccommodation.body.id}`, 'cazari');
+      expect(allowed.status).toBe(200);
+      expect(allowed.body.patients[0].treatment).toBe('Implant (test automat)');
+
+      const hidden = await api('get', `/api/visits/${withoutAccommodation.body.id}`, 'cazari');
+      expect(hidden.status).toBe(404);
+      expect(hidden.body).toEqual({ error: 'Vizita nu există' });
+
+      // celelalte roluri văd în continuare vizita fără cazare
+      expect((await api('get', `/api/visits/${withoutAccommodation.body.id}`, 'backoffice')).status).toBe(200);
+      expect((await api('get', `/api/visits/${withoutAccommodation.body.id}`, 'contabil')).status).toBe(200);
+    });
+
     it('Admin poate înregistra o vizită', async () => {
       expect((await createVisit({}, 'admin')).status).toBe(201);
     });
