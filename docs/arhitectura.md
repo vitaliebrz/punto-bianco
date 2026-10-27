@@ -184,7 +184,7 @@ Toate rutele de mai jos, în afară de login și health, cer `Authorization: Bea
 | GET | `/api/users/coordinators` | conectat | coordonatorii activi (lista din formular) |
 | GET | `/api/users` | Admin | toți utilizatorii (fără hash-ul parolei), întâi cei activi |
 | POST | `/api/users` | Admin | `{ fullName, email, role, password }` → cont nou (parola salvată doar ca hash bcrypt); email existent → 409 |
-| PATCH | `/api/users/:id/active` | Admin | `{ "active": true \| false }`; propriul cont nu se poate dezactiva (400) |
+| PATCH | `/api/users/:id/active` | Admin | `{ "active": true \| false }`; propriul cont nu se poate dezactiva și rămâne mereu cel puțin un Admin activ (400); două dezactivări simultane care ar lăsa 0 Admini → una primește 409 |
 | GET | `/api/visits` | Coordonator, Back office, Contabil, Control calitate | vizitele, ordonate după sosire |
 | GET | `/api/visits/:id` | aceiași + Manager cazări | detaliile unei vizite; Managerul de cazări: doar vizitele cu cazare (altfel 404), fără tratament și disponibilitate |
 | POST | `/api/visits` | Coordonator | înregistrează vizita + notificările |

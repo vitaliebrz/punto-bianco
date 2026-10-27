@@ -123,13 +123,28 @@ La final: PR **`feat: admin user management`**.
    4. Îl reactivezi și merge din nou.
 3. Pe telefon: lista și formularul arată bine.
 
+## Code review după implementare: reparații
+Un review automat al ramurii a găsit 9 probleme. Le reparăm pe toate înainte de merge.
+
+| # | Problema | Reparația | Test |
+|---|---|---|---|
+| 1 | **Aplicația poate rămâne fără Admin:** un Admin poate dezactiva alți Admini; doi Admini care se dezactivează unul pe altul în același timp reușesc amândoi | dezactivarea se face într-o tranzacție `Serializable`: după schimbare trebuie să rămână cel puțin un Admin activ, altfel 400; două dezactivări simultane care ar lăsa 0 Admini → una e oprită de bază (409, „reîncarcă lista”) | `users-api` (bază simulată) |
+| 2 | Reîncărcarea listei după un cont nou poate suprascrie o dezactivare mai nouă | fără reîncărcare: contul nou (din răspunsul POST) se adaugă direct în listă | `users.test` |
+| 3 | Rândul dezactivat rămâne printre conturile active | lista e ordonată mereu în pagină, ca pe server: întâi activii, apoi după nume | `users.test` |
+| 4 | bcrypt rulează și pentru un email deja folosit | întâi căutarea emailului (409 fără criptare); tratarea erorii de unicitate rămâne pentru cererile simultane | `users-api` |
+| 5 | `console.error` rămâne ascuns după un test | mock-urile se restabilesc după fiecare test (`afterEach`) | — |
+| 6 | `FormField` cu `action` pe un `select` își pierde săgeata | `action` se aplică doar câmpurilor text | — |
+| 7 | „Butonul în dreapta câmpului” e scris de două ori (login și `FormField`) | o singură componentă, `WithAction`, folosită de amândouă | testele existente |
+| 8 | Butonul cu ochi are și etichetă schimbătoare, și starea „apăsat” (semnale contradictorii) | rămâne doar eticheta schimbătoare („Arată parola” / „Ascunde parola”) | `auth.test` |
+| 9 | Mesajul „Nu există utilizatori” nu poate apărea (lista conține mereu Admin-ul conectat) | ramura și importul se șterg | — |
+
 ## Ce s-a implementat / abateri de la plan
 
 ### Rezultat
 - **Backend:** `GET`, `POST /api/users` și `PATCH /api/users/:id/active`, doar pentru Admin.
   - Parola se salvează doar ca hash bcrypt.
   - Un email deja folosit primește 409, cu eroarea la câmpul Email (regula ține și la două cereri simultane).
-  - Admin-ul nu se poate dezactiva pe sine.
+  - Admin-ul nu se poate dezactiva pe sine și rămâne mereu cel puțin un Admin activ (după code review, vezi mai sus).
   - Regulile pentru email și parolă sunt comune cu login-ul (`schemas/auth.js`).
 - **Frontend:** pagina **Utilizatori** (`/utilizatori`), doar pentru Admin:
   - lista conturilor, cu insigna Activ / Inactiv și „(tu)” la contul propriu;
@@ -139,8 +154,8 @@ La final: PR **`feat: admin user management`**.
 
   | | înainte | după |
   |---|---|---|
-  | backend | 285 | **349** |
-  | frontend | 92 | **99** |
+  | backend | 285 | **354** |
+  | frontend | 92 | **100** |
 
   Testul `db-users` a rulat pe Neon `dev`, cu acordul dat; după rulare n-a rămas niciun cont de test. Lint-ul (fără avertismente) și build-ul sunt curate.
 - **Baza de date:** nicio schimbare, nicio migrare.

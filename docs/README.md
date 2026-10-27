@@ -106,11 +106,11 @@ npx prisma studio           # interfață în browser pentru tabelele din baza d
 
 ```powershell
 cd backend
-npm test            # 349 de teste: validare, roluri, API, utilizatori, notificări, calendar, integrare cu baza (Neon dev)
+npm test            # 354 de teste: validare, roluri, API, utilizatori, notificări, calendar, integrare cu baza (Neon dev)
 npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
-npm test            # 99 de teste: login și sesiune, formular, liste, butoane de status, utilizatori, meniu, clopoțel, cu serverul simulat
+npm test            # 100 de teste: login și sesiune, formular, liste, butoane de status, utilizatori, meniu, clopoțel, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
@@ -128,7 +128,7 @@ npm test            # 99 de teste: login și sesiune, formular, liste, butoane d
 | backend | `tests/db-write-guard.test.js` | scrierile uneltelor doar în baza din `DB_WRITE_HOST` | nu |
 | backend | `tests/db.test.js` | login pentru toate rolurile, `/me`, coordonatori, doar-citire pe date reale | **da**, doar citire |
 | backend | `tests/user-validation.test.js` | formularul unui cont nou (email, rol, parola de 8–72 de bytes, câmpuri în plus), dezactivarea | nu |
-| backend | `tests/users-api.test.js` | rutele de utilizatori: hash bcrypt, email duplicat (409), propriul cont (400), cont inexistent (404) | nu (bază simulată) |
+| backend | `tests/users-api.test.js` | rutele de utilizatori: hash bcrypt, email duplicat (409, fără criptare), propriul cont și ultimul Admin activ (400), dezactivări simultane (409), cont inexistent (404) | nu (bază simulată) |
 | backend | `tests/db-flow.test.js` | fluxul complet: vizită → notificări → Început / Finalizat → Rezervat → calendar; roluri; apăsări simultane; Manager cazări fără date medicale | **da**, scrie și **șterge** la final |
 | backend | `tests/db-users.test.js` | cont nou → login → dezactivat (login și token vechi refuzate, dispare din coordonatori) → reactivat | **da**, scrie și **șterge** la final |
 | frontend | `src/test/auth.test.jsx` | login, eroare, roluri, ieșire, parola vizibilă, sesiunea după refresh, mai multe tab-uri, stocare blocată, timpul limită al cererilor | nu |
