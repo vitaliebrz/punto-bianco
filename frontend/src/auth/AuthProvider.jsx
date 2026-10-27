@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { apiFetch, tokenStorage, SESSION_EXPIRED_EVENT } from '../api'
+import { apiFetch, tokenStorage, SESSION_EXPIRED_EVENT, TOKEN_KEY } from '../api'
 import { AuthContext } from './AuthContext'
 
 export default function AuthProvider({ children }) {
@@ -39,6 +39,25 @@ export default function AuthProvider({ children }) {
     window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
   }, [])
+
+  // Alt tab al aceluiași browser a ieșit din cont sau s-a conectat (evenimentul „storage”
+  // vine doar din celelalte tab-uri). Ieșire -> ieșim și aici, ca datele pacienților să nu
+  // rămână pe ecran; login -> aflăm de la server cine e conectat acum.
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key !== TOKEN_KEY && event.key !== null) return // null = localStorage golit tot
+      if (tokenStorage.get()) {
+        setLoading(true)
+        setSessionError('')
+        verifySession()
+      } else {
+        setSessionError('')
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [verifySession])
 
   const login = useCallback(async (email, password) => {
     const data = await apiFetch('/api/auth/login', {

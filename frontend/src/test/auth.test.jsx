@@ -1,9 +1,10 @@
 // Fluxul de autentificare, cu backend-ul simulat (fetch fals) — fără server real.
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { apiFetch, REQUEST_TIMEOUT_MS } from '../api'
 import AuthProvider from '../auth/AuthProvider'
 import { json, mockFetch, renderAs, USERS } from './helpers'
 
@@ -142,5 +143,74 @@ describe('sesiunea după refresh', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Reîncearcă' }))
 
     expect(await screen.findByText('Elena Popescu')).toBeInTheDocument()
+  })
+})
+
+// Evenimentul „storage” e trimis de browser doar în CELELALTE tab-uri; aici îl trimitem noi
+const otherTabChangedToken = () =>
+  act(() => window.dispatchEvent(new StorageEvent('storage', { key: TOKEN_KEY })))
+
+describe('mai multe tab-uri', () => {
+  it('Ieșire în alt tab: și tab-ul acesta revine la login (datele nu rămân pe ecran)', async () => {
+    renderAs(USERS.admin, '/', emptyLists)
+    expect(await screen.findByText('Elena Popescu')).toBeInTheDocument()
+
+    localStorage.removeItem(TOKEN_KEY)
+    otherTabChangedToken()
+
+    expect(await screen.findByText('Conectează-te la contul tău')).toBeInTheDocument()
+    expect(screen.queryByText('Elena Popescu')).not.toBeInTheDocument()
+  })
+
+  it('login în alt tab: tab-ul acesta intră și el în cont', async () => {
+    mockFetch({ 'GET /api/auth/me': json(200, { user: USERS.admin }), ...emptyLists })
+    renderApp('/login')
+    expect(await screen.findByText('Conectează-te la contul tău')).toBeInTheDocument()
+
+    localStorage.setItem(TOKEN_KEY, 'token-admin')
+    otherTabChangedToken()
+
+    expect(await screen.findByText('Elena Popescu')).toBeInTheDocument()
+  })
+})
+
+describe('localStorage blocat (ex. mod privat)', () => {
+  it('login-ul merge: tokenul ținut în memorie e trimis la cererile următoare', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Stocare blocată', 'SecurityError')
+    })
+    const fetchMock = mockFetch({
+      'POST /api/auth/login': json(200, { token: 'token-memorie', user: USERS.admin }),
+      ...emptyLists,
+    })
+    renderApp('/login')
+
+    await fillLogin('admin@puntobianco.demo', 'Demo1234!')
+
+    expect(await screen.findByRole('heading', { name: 'Vizite' })).toBeInTheDocument()
+    const visitsCall = fetchMock.mock.calls.find(([url]) => new URL(url).pathname === '/api/visits')
+    expect(visitsCall[1].headers.Authorization).toBe('Bearer token-memorie')
+  })
+})
+
+describe('cererile au un timp limită', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it(`fără răspuns în ${REQUEST_TIMEOUT_MS / 1000} s: cererea se oprește cu „Serverul nu răspunde”`, async () => {
+    vi.useFakeTimers()
+    // un server care nu răspunde niciodată; cererea se termină doar când e oprită
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url, { signal }) => new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('Oprită', 'AbortError')))
+      })),
+    )
+
+    const request = apiFetch('/api/visits')
+    const outcome = expect(request).rejects.toMatchObject({ status: 0, message: expect.stringContaining('Serverul nu răspunde') })
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS)
+    await outcome
   })
 })
