@@ -1,14 +1,15 @@
 import { cn } from '../cn'
+import { requiredMark } from '../formStyles'
 import { FieldError } from './FormField'
 
 // Butoane segmentate: o alegere din câteva variante. Tehnic sunt butoane radio (tastatura: săgeți).
 // options = [{ value, label }]
-export default function SegmentedControl({ name, label, value, options, onChange, error, className }) {
+export default function SegmentedControl({ name, label, value, options, onChange, error, required = false, className }) {
   const errorId = error ? `${name}-error` : undefined
 
   return (
     <fieldset className={cn('flex min-w-0 flex-col gap-2', className)} aria-describedby={errorId}>
-      <legend className="mb-2 text-sm font-medium text-ink-700">{label}</legend>
+      <legend className={cn('mb-2 text-sm font-medium text-ink-700', required && requiredMark)}>{label}</legend>
       <div
         className={cn(
           'grid w-full auto-cols-fr grid-flow-col gap-1 rounded-xl bg-ink-100 p-1 sm:w-auto sm:self-start',
@@ -22,6 +23,7 @@ export default function SegmentedControl({ name, label, value, options, onChange
               name={name}
               value={option.value}
               checked={value === option.value}
+              required={required}
               onChange={() => onChange(option.value)}
               className="peer sr-only"
             />

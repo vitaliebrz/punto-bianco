@@ -1,8 +1,24 @@
 import { useState } from 'react'
+import { Bed } from '@phosphor-icons/react/Bed'
+import { CalendarBlank } from '@phosphor-icons/react/CalendarBlank'
+import { CircleNotch } from '@phosphor-icons/react/CircleNotch'
+import { FloppyDisk } from '@phosphor-icons/react/FloppyDisk'
+import { IdentificationBadge } from '@phosphor-icons/react/IdentificationBadge'
+import { User } from '@phosphor-icons/react/User'
+import { UsersThree } from '@phosphor-icons/react/UsersThree'
+import { Van } from '@phosphor-icons/react/Van'
+import { WarningCircle } from '@phosphor-icons/react/WarningCircle'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../api'
 import { useAuth } from '../auth/useAuth'
+import Button from '../components/Button'
 import FormField from '../components/FormField'
+import FormSection, { Reveal } from '../components/FormSection'
+import Listbox from '../components/Listbox'
+import PageHeader from '../components/PageHeader'
+import RadioCards from '../components/RadioCards'
+import SegmentedControl from '../components/SegmentedControl'
+import Switch from '../components/Switch'
 import { APARTMENT_LABELS, TRANSFER_DIRECTION_LABELS } from '../labels'
 import { useApiData } from '../useApiData'
 import { buildVisitPayload, errorsByField, initialVisitForm } from '../visitForm'
@@ -23,6 +39,13 @@ const KNOWN_FIELDS = [
   'accommodation.apartmentType',
   'accommodation.freeDays',
   'transfer.direction',
+]
+
+const APARTMENT_OPTIONS = Object.entries(APARTMENT_LABELS).map(([value, label]) => ({ value, label }))
+const DIRECTION_OPTIONS = Object.entries(TRANSFER_DIRECTION_LABELS).map(([value, label]) => ({ value, label }))
+const COST_OPTIONS = [
+  { value: 'free', label: 'Gratuit' },
+  { value: 'paid', label: 'Contra cost' },
 ]
 
 // Pasul 1 din cerință: coordonatorul înregistrează pacientul
@@ -69,19 +92,23 @@ export default function NewVisitPage() {
   }
 
   return (
-    <section className="page">
-      <div className="page-header">
-        <h1>Vizită nouă</h1>
-      </div>
+    <section className="flex flex-col gap-6">
+      <PageHeader
+        title="Vizită nouă"
+        description="După salvare, Back office-ul și managerul de cazări sunt anunțați automat."
+      />
 
-      <form className="visit-form" onSubmit={handleSubmit} noValidate>
-        <fieldset className="form-section">
-          <legend>Pacient</legend>
-          <div className="form-grid">
-            <FormField label="Prenume" autoComplete="off" {...text('patient', 'firstName')} />
-            <FormField label="Nume" autoComplete="off" {...text('patient', 'lastName')} />
+      <form className="flex max-w-3xl flex-col gap-5" onSubmit={handleSubmit} noValidate>
+        <p className="text-sm text-ink-500">
+          Câmpurile marcate cu <span className="font-bold text-red-600">*</span> sunt obligatorii.
+        </p>
+
+        <FormSection number={1} icon={User} title="Pacient">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField label="Prenume" required autoComplete="off" {...text('patient', 'firstName')} />
+            <FormField label="Nume" required autoComplete="off" {...text('patient', 'lastName')} />
           </div>
-          <FormField label="Tratament" as="textarea" rows={3} {...text('patient', 'treatment')} />
+          <FormField label="Tratament" required as="textarea" rows={3} {...text('patient', 'treatment')} />
           <FormField
             label="Disponibilitatea în perioada sejurului"
             as="textarea"
@@ -89,41 +116,32 @@ export default function NewVisitPage() {
             hint="Comentariu, ex. „liber după ora 12:00”"
             {...text('patient', 'availability')}
           />
-        </fieldset>
+        </FormSection>
 
-        <fieldset className="form-section">
-          <legend>Însoțitor</legend>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.hasCompanion}
-              onChange={(event) => setField('hasCompanion', event.target.checked)}
-            />
-            Vine cu însoțitor
-          </label>
+        <FormSection number={2} icon={UsersThree} title="Însoțitor">
+          <Switch
+            id="hasCompanion"
+            label="Vine cu însoțitor"
+            checked={form.hasCompanion}
+            onChange={(event) => setField('hasCompanion', event.target.checked)}
+          />
 
           {form.hasCompanion && (
-            <>
-              <div className="form-grid">
-                <FormField label="Prenume însoțitor" autoComplete="off" {...text('companion', 'firstName')} />
-                <FormField label="Nume însoțitor" autoComplete="off" {...text('companion', 'lastName')} />
+            <Reveal>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField label="Prenume însoțitor" required autoComplete="off" {...text('companion', 'firstName')} />
+                <FormField label="Nume însoțitor" required autoComplete="off" {...text('companion', 'lastName')} />
               </div>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={form.companionHasTreatment}
-                  onChange={(event) => setField('companionHasTreatment', event.target.checked)}
-                />
-                Însoțitorul are și el tratament
-              </label>
+              <Switch
+                id="companionHasTreatment"
+                label="Însoțitorul are și el tratament"
+                description="Se completează aceleași câmpuri ca la pacient."
+                checked={form.companionHasTreatment}
+                onChange={(event) => setField('companionHasTreatment', event.target.checked)}
+              />
               {form.companionHasTreatment && (
                 <>
-                  <FormField
-                    label="Tratament însoțitor"
-                    as="textarea"
-                    rows={3}
-                    {...text('companion', 'treatment')}
-                  />
+                  <FormField label="Tratament însoțitor" required as="textarea" rows={3} {...text('companion', 'treatment')} />
                   <FormField
                     label="Disponibilitatea însoțitorului"
                     as="textarea"
@@ -132,16 +150,16 @@ export default function NewVisitPage() {
                   />
                 </>
               )}
-            </>
+            </Reveal>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset className="form-section">
-          <legend>Sejur</legend>
-          <div className="form-grid">
+        <FormSection number={3} icon={CalendarBlank} title="Sejur">
+          <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               id="arrivalAt"
               label="Sosire (data și ora)"
+              required
               type="datetime-local"
               value={form.arrivalAt}
               error={errors.arrivalAt}
@@ -150,151 +168,134 @@ export default function NewVisitPage() {
             <FormField
               id="departureAt"
               label="Plecare (data și ora)"
+              required
               type="datetime-local"
               value={form.departureAt}
               error={errors.departureAt}
               onChange={(event) => setField('departureAt', event.target.value)}
             />
           </div>
-        </fieldset>
+        </FormSection>
 
-        <fieldset className="form-section">
-          <legend>Cazare</legend>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.needsAccommodation}
-              onChange={(event) => setField('needsAccommodation', event.target.checked)}
-            />
-            Are nevoie de cazare
-          </label>
+        <FormSection number={4} icon={Bed} title="Cazare">
+          <Switch
+            id="needsAccommodation"
+            label="Are nevoie de cazare"
+            checked={form.needsAccommodation}
+            onChange={(event) => setField('needsAccommodation', event.target.checked)}
+          />
 
           {form.needsAccommodation && (
-            <>
-              <FormField as="select" label="Tipul apartamentului" {...text('accommodation', 'apartmentType')}>
-                <option value="">Alege…</option>
-                {Object.entries(APARTMENT_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </FormField>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={form.accommodation.isFree}
-                  onChange={(event) => setSectionField('accommodation', 'isFree', event.target.checked)}
-                />
-                Cazare gratuită
-              </label>
+            <Reveal>
+              <RadioCards
+                name="accommodation.apartmentType"
+                label="Tipul apartamentului"
+                required
+                options={APARTMENT_OPTIONS}
+                value={form.accommodation.apartmentType}
+                error={errors['accommodation.apartmentType'] && 'Alege tipul apartamentului'}
+                onChange={(value) => setSectionField('accommodation', 'apartmentType', value)}
+              />
+              <Switch
+                id="accommodationIsFree"
+                label="Cazare gratuită"
+                checked={form.accommodation.isFree}
+                onChange={(event) => setSectionField('accommodation', 'isFree', event.target.checked)}
+              />
               {form.accommodation.isFree && (
                 <FormField
                   label="Pentru câte zile e gratuită"
+                  required
                   type="number"
                   min="1"
                   max="365"
                   inputMode="numeric"
+                  className="sm:max-w-56"
                   {...text('accommodation', 'freeDays')}
                 />
               )}
-            </>
+            </Reveal>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset className="form-section">
-          <legend>Transfer de la aeroport</legend>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={form.needsTransfer}
-              onChange={(event) => setField('needsTransfer', event.target.checked)}
-            />
-            Are nevoie de transfer
-          </label>
+        <FormSection number={5} icon={Van} title="Transfer de la aeroport">
+          <Switch
+            id="needsTransfer"
+            label="Are nevoie de transfer"
+            checked={form.needsTransfer}
+            onChange={(event) => setField('needsTransfer', event.target.checked)}
+          />
 
           {form.needsTransfer && (
-            <>
-              <div className="radio-group" role="radiogroup" aria-label="Cost transfer">
-                <label className="check">
-                  <input
-                    type="radio"
-                    name="transferCost"
-                    checked={form.transfer.isFree}
-                    onChange={() => setSectionField('transfer', 'isFree', true)}
-                  />
-                  Gratuit
-                </label>
-                <label className="check">
-                  <input
-                    type="radio"
-                    name="transferCost"
-                    checked={!form.transfer.isFree}
-                    onChange={() => setSectionField('transfer', 'isFree', false)}
-                  />
-                  Contra cost
-                </label>
-              </div>
-
-              <div
-                className="radio-group"
-                role="radiogroup"
-                aria-label="Direcția transferului"
-                aria-describedby={errors['transfer.direction'] ? 'transfer.direction-error' : undefined}
-              >
-                {Object.entries(TRANSFER_DIRECTION_LABELS).map(([value, label]) => (
-                  <label key={value} className="check">
-                    <input
-                      type="radio"
-                      name="transferDirection"
-                      value={value}
-                      checked={form.transfer.direction === value}
-                      onChange={() => setSectionField('transfer', 'direction', value)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              {errors['transfer.direction'] && (
-                <span id="transfer.direction-error" className="field-error">
-                  Alege direcția transferului
-                </span>
-              )}
-            </>
+            <Reveal>
+              <SegmentedControl
+                name="transferCost"
+                label="Cost"
+                options={COST_OPTIONS}
+                value={form.transfer.isFree ? 'free' : 'paid'}
+                onChange={(value) => setSectionField('transfer', 'isFree', value === 'free')}
+              />
+              <SegmentedControl
+                name="transfer.direction"
+                label="Direcția"
+                required
+                options={DIRECTION_OPTIONS}
+                value={form.transfer.direction}
+                error={errors['transfer.direction'] && 'Alege direcția transferului'}
+                onChange={(value) => setSectionField('transfer', 'direction', value)}
+              />
+            </Reveal>
           )}
-        </fieldset>
+        </FormSection>
 
-        <fieldset className="form-section">
-          <legend>Coordonator responsabil</legend>
-          <FormField
-            as="select"
+        <FormSection number={6} icon={IdentificationBadge} title="Coordonator responsabil">
+          <Listbox
             id="coordinatorId"
             label="Coordonator"
+            required
+            avatars
+            className="sm:max-w-sm"
+            placeholder={coordinators.loading ? 'Se încarcă…' : 'Alege coordonatorul'}
+            disabled={coordinators.loading}
+            options={(coordinators.data ?? []).map((coordinator) => ({
+              value: coordinator.id,
+              label: coordinator.fullName,
+            }))}
             value={form.coordinatorId}
             error={errors.coordinatorId ?? coordinators.error}
-            onChange={(event) => setField('coordinatorId', event.target.value)}
-          >
-            <option value="">{coordinators.loading ? 'Se încarcă…' : 'Alege…'}</option>
-            {(coordinators.data ?? []).map((coordinator) => (
-              <option key={coordinator.id} value={coordinator.id}>
-                {coordinator.fullName}
-              </option>
-            ))}
-          </FormField>
-        </fieldset>
+            onChange={(value) => setField('coordinatorId', value)}
+          />
+        </FormSection>
 
-        {formError && (
-          <p className="alert-error" role="alert">
-            {formError}
-          </p>
-        )}
-
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Se salvează…' : 'Înregistrează vizita'}
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/vizite')}>
-            Renunță
-          </button>
+        {/* Butoanele rămân lipite jos, ca să nu trebuiască derulat formularul până la capăt */}
+        <div className="sticky bottom-0 z-10 -mx-4 mt-1 flex flex-col gap-3 border-t border-ink-200/70 bg-ink-50/90 px-4 py-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-2xl lg:border lg:bg-white/90 lg:px-5 lg:shadow-card">
+          {formError && (
+            <p
+              role="alert"
+              className="flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-3 text-sm font-medium text-red-800 ring-1 ring-red-100 ring-inset"
+            >
+              <WarningCircle size={18} weight="bold" aria-hidden="true" className="mt-px shrink-0" />
+              {formError}
+            </p>
+          )}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => navigate('/vizite')}>
+              Renunță
+            </Button>
+            <Button type="submit" disabled={submitting} className="sm:min-w-52">
+              {submitting ? (
+                <>
+                  <CircleNotch size={18} weight="bold" aria-hidden="true" className="animate-spin" />
+                  Se salvează…
+                </>
+              ) : (
+                <>
+                  <FloppyDisk size={18} weight="bold" aria-hidden="true" />
+                  Înregistrează vizita
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </section>

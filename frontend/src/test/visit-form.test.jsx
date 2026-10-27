@@ -73,7 +73,7 @@ describe('formularul „Vizită nouă”', () => {
     await user.type(screen.getByLabelText('Plecare (data și ora)'), '2026-11-09T10:00')
 
     await user.click(screen.getByLabelText('Are nevoie de cazare'))
-    await user.selectOptions(screen.getByLabelText('Tipul apartamentului'), 'STUDIO')
+    await user.click(screen.getByLabelText('Studio'))
     await user.click(screen.getByLabelText('Cazare gratuită'))
     await user.type(screen.getByLabelText('Pentru câte zile e gratuită'), '3')
 
@@ -82,7 +82,7 @@ describe('formularul „Vizită nouă”', () => {
     await user.click(screen.getByLabelText('Dus-întors'))
 
     // coordonatorul conectat e deja ales
-    expect(screen.getByLabelText('Coordonator')).toHaveValue('2')
+    expect(await screen.findByRole('button', { name: 'Coordonator Ana Ciobanu' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Înregistrează vizita' }))
 
@@ -121,6 +121,49 @@ describe('formularul „Vizită nouă”', () => {
       'Plecarea trebuie să fie după sosire',
     )
     expect(screen.getByRole('button', { name: 'Înregistrează vizita' })).toBeEnabled()
+  })
+
+  it('câmpurile obligatorii sunt marcate (și pentru cititoarele de ecran)', async () => {
+    renderAs(COORDINATOR, '/vizite/noua', coordinatorsRoute)
+    const user = userEvent.setup()
+
+    expect(await screen.findByLabelText('Prenume')).toHaveAttribute('aria-required', 'true')
+    expect(screen.getByLabelText('Tratament')).toHaveAttribute('aria-required', 'true')
+    expect(screen.getByLabelText('Sosire (data și ora)')).toHaveAttribute('aria-required', 'true')
+    // disponibilitatea e opțională
+    expect(screen.getByLabelText('Disponibilitatea în perioada sejurului')).not.toHaveAttribute('aria-required')
+
+    // câmpurile care apar după un comutator sunt și ele obligatorii
+    await user.click(screen.getByLabelText('Vine cu însoțitor'))
+    expect(screen.getByLabelText('Prenume însoțitor')).toHaveAttribute('aria-required', 'true')
+  })
+
+  it('lista coordonatorilor: se deschide, se alege cu mouse-ul sau cu tastatura', async () => {
+    const fetchMock = renderAs(COORDINATOR, '/vizite/noua', {
+      ...coordinatorsRoute,
+      'POST /api/visits': json(400, { error: 'Date invalide', details: [] }),
+    })
+    const user = userEvent.setup()
+
+    const button = await screen.findByRole('button', { name: 'Coordonator Ana Ciobanu' })
+    await user.click(button)
+    const listbox = screen.getByRole('listbox', { name: 'Coordonator' })
+    expect(within(listbox).getByRole('option', { name: 'Ana Ciobanu' })).toHaveAttribute('aria-selected', 'true')
+
+    // mouse: alege Mihai Rusu
+    await user.click(within(listbox).getByRole('option', { name: 'Mihai Rusu' }))
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Coordonator Mihai Rusu' })).toHaveFocus()
+
+    // tastatura: săgeată sus + Enter -> înapoi la Ana Ciobanu; Escape închide fără schimbare
+    await user.keyboard('{ArrowDown}{ArrowUp}{Enter}')
+    expect(screen.getByRole('button', { name: 'Coordonator Ana Ciobanu' })).toBeInTheDocument()
+    await user.keyboard('{ArrowDown}{Escape}')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+
+    await user.keyboard('{ArrowDown}{End}{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Înregistrează vizita' }))
+    expect(sentBody(fetchMock, 'POST', '/api/visits').coordinatorId).toBe(3)
   })
 })
 
