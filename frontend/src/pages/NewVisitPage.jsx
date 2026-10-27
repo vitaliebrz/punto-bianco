@@ -267,8 +267,9 @@ export default function NewVisitPage() {
           />
         </FormSection>
 
-        {/* Butoanele rămân lipite jos, ca să nu trebuiască derulat formularul până la capăt */}
-        <div className="sticky bottom-0 z-10 -mx-4 mt-1 flex flex-col gap-3 border-t border-ink-200/70 bg-ink-50/90 px-4 py-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:mx-0 lg:rounded-2xl lg:border lg:bg-white/90 lg:px-5 lg:shadow-card">
+        {/* Telefon / tabletă: butoanele stau la final, sub formular (lipite jos, ar sta deasupra tastaturii
+            și ar acoperi câmpurile). Calculator (ecran lat + mouse): rămân lipite jos, ca să nu derulezi până la capăt. */}
+        <div className="mt-1 flex flex-col gap-3 lg:rounded-2xl lg:border lg:border-ink-200/70 lg:bg-white/90 lg:px-5 lg:py-4 lg:shadow-card lg:backdrop-blur-md lg:pointer-fine:sticky lg:pointer-fine:bottom-0 lg:pointer-fine:z-10">
           {formError && (
             <p
               role="alert"
