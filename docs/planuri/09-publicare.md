@@ -1,6 +1,6 @@
 # Plan 09 — Publicarea aplicației (Neon + Render + Vercel)
 
-**Ziua 3** · Ramura: `chore/deployment` · Status: **în lucru**
+**Ziua 3** · Ramuri: `chore/deployment` (PR #11), `docs/deployment` · Status: **finalizat**
 
 ## Context
 Aplicația e completă și testată local, inclusiv cu 50 de utilizatori simultan. Acum trebuie publicată pe internet, ca echipa clinicii să o deschidă de pe calculator sau telefon. Nu adăugăm funcții noi, schimbăm doar ce cere publicarea.
@@ -93,4 +93,48 @@ Valorile secrete le generezi și le pui **tu**, direct în Render, Vercel și Ne
 La final: PR **`chore: deploy to Render and Vercel`**.
 
 ## Ce s-a implementat / abateri de la plan
-_Se completează la final._
+
+### Rezultat
+- **Aplicația e publicată:**
+  - aplicația: https://punto-bianco.vercel.app;
+  - API: https://punto-bianco.onrender.com;
+  - baza: Neon, ramura principală, cu datele demo.
+- **Codul pentru publicare** (PR #11):
+  - backend: `TRUST_PROXY` și `JWT_SECRET` verificate la pornire, oprire curată, `npm run build` cu migrări, Node 22;
+  - frontend: `vercel.json` și timpul limită de 60 s.
+- **Verificarea manuală pe aplicația publicată** a trecut în întregime:
+  - coordonatorul înregistrează vizita;
+  - Back office și Manager cazări primesc notificarea și schimbă statusul;
+  - șoferul vede transferul în calendar;
+  - contabilul are doar vizualizare;
+  - Admin-ul gestionează utilizatorii;
+  - telefonul și refresh-ul pe `/vizite/…` merg.
+
+### Testul cu 50 de utilizatori pe Render (planul Free, doar citiri)
+| Rută | cereri | erori | p50 | p95 |
+|---|---|---|---|---|
+| `POST /api/auth/login` (50 în aceeași secundă) | 50 | **17** (au depășit cele 15 s ale scriptului) | 11.653 ms | 15.025 ms |
+| `GET /api/visits` | 299 | 0 | 98 ms | 262 ms |
+| `GET /api/visits/:id` | 165 | 0 | 98 ms | 210 ms |
+| `GET /api/accommodations` | 111 | 0 | 96 ms | 313 ms |
+| `GET /api/transfers` (calendarul) | 258 | 0 | 97 ms | 222 ms |
+| `GET /api/notifications` | 66 | 0 | 277 ms | 2.872 ms |
+| vârf: pagina principală, toți în același moment | 33 | 0 | 465–647 ms | 950 ms |
+
+**Total:** 1.044 de cereri în 62,9 s, 17 erori, toate la login.
+
+**Concluzia:**
+- **Utilizatorii conectați lucrează fără erori** și rapid: citirile au p95 sub 320 ms, mai rapid decât local, pentru că serverul stă lângă bază.
+- Singura limită e **momentul în care 50 de oameni apasă „Intră în cont” în aceeași secundă**. Parola se verifică cu bcrypt (intenționat lent, ca să fie greu de spart), iar procesorul planului Free nu le termină pe toate în 15 s.
+  - Limita de 15 s e a scriptului de test; aplicația așteaptă 60 s, deci acele login-uri ar fi reușit, doar mai lent.
+  - `/api/auth/me` și notificările au fost lente doar în primele secunde, cât procesorul era ocupat cu login-urile.
+- Același test, local, pe un procesor obișnuit: **50/50 login-uri, 0 erori** ([planul 06](06-test-incarcare.md), rulat din nou înainte de publicare).
+- Pentru folosire zilnică cu toată echipa: un plan Render plătit (Starter), fără nicio schimbare de cod.
+
+### Abateri
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| un singur PR la final | PR #11 (codul) **înainte** de publicare; documentația pe o ramură separată (`docs/deployment`) | Render și Vercel publică din `main`, deci codul trebuia unit înainte de crearea serviciilor |
+| Vercel cu `VITE_API_URL` de la început | primul build a fost fără variabilă; după adăugarea ei a fost nevoie de **Redeploy** fără cache | Vite scrie variabila în cod la build, nu la rulare; verificat în fișierul publicat |
+| — | primul seed în producție a fost oprit de `DB_WRITE_HOST` (parantezele `< >` copiate din exemplu); nu s-a șters nimic | protecția din planul 07 a funcționat: host-ul nu se potrivea exact |
+| testul de încărcare: toate pragurile | 17 login-uri peste 15 s pe planul Free (vezi mai sus) | limita procesorului gratuit, nu a codului |

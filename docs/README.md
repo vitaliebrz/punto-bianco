@@ -17,6 +17,39 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
+## Aplicația publicată
+
+| | Adresa | Unde |
+|---|---|---|
+| **Aplicația** | https://punto-bianco.vercel.app | Vercel |
+| API | https://punto-bianco.onrender.com (verificare: `/api/health`) | Render, Frankfurt, planul Free |
+| Baza de date | ramura principală a proiectului Neon | Neon |
+
+**Cum se intră:**
+- conturile demo sunt cele din tabelul „Conturi demo” de mai jos;
+- parola lor e cea aleasă la seed-ul de producție și **nu e în repo**: se comunică separat;
+- conturi noi se creează ca Admin, din pagina **Utilizatori**.
+
+**Planul Free de pe Render:**
+- După 15 minute fără cereri, serverul „adoarme”. Prima cerere după aceea (de obicei login-ul) durează **până la ~50 de secunde**; aplicația așteaptă până la 60 s, apoi totul merge normal.
+- Pentru folosire zilnică în clinică e recomandat un plan plătit (Starter): mereu pornit, procesor mai puternic.
+
+**Publicarea automată:**
+- Render și Vercel publică singure la fiecare merge în `main`.
+- La fiecare publicare, Render rulează `npm run build` = `prisma generate` + `prisma migrate deploy`, deci tabelele sunt mereu la zi.
+
+**Setările serviciilor** (variabilele, comenzile de build, ordinea publicării) sunt în [planul 09](planuri/09-publicare.md). Valorile secrete stau doar în Render, Vercel și Neon.
+
+**Datele demo în producție** (seed-ul **șterge** tot și pune datele demo; nu se rulează după ce aplicația e folosită cu date reale):
+1. Deschizi un terminal nou, în folderul `backend`, și rulezi:
+   ```powershell
+   $env:DATABASE_URL = "adresa pooled a producției"
+   $env:DB_WRITE_HOST = "host-ul ei (partea dintre @ și /)"
+   $env:SEED_PASSWORD = "parola demo"
+   npm run seed
+   ```
+2. Închizi terminalul. Adresele producției nu ajung în `.env`.
+
 ## Pornire locală
 
 ### Cerințe

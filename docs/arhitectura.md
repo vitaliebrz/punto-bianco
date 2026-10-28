@@ -12,7 +12,7 @@
 
 Cerințe din temă care influențează arhitectura:
 - **Responsive:** interfața trebuie să meargă și pe telefon.
-- **Minim 50 de utilizatori simultan:** API-ul folosește un singur client Prisma, baza e accesată prin adresa *pooled* din Neon (un „pool” de conexiuni reutilizate), o vizită se citește dintr-o singură interogare (`relationJoins`), iar login-ul nu ține sesiuni pe server (JWT). **Verificat** cu testul de încărcare (`npm run load-test` în `backend`): 50 de utilizatori, 0 erori, 24 de cereri/s; rezultate în [planul 06](planuri/06-test-incarcare.md).
+- **Minim 50 de utilizatori simultan:** API-ul folosește un singur client Prisma, baza e accesată prin adresa *pooled* din Neon (un „pool” de conexiuni reutilizate), o vizită se citește dintr-o singură interogare (`relationJoins`), iar login-ul nu ține sesiuni pe server (JWT). **Verificat** cu testul de încărcare (`npm run load-test` în `backend`): 50 de utilizatori, 0 erori, 24 de cereri/s; rezultate în [planul 06](planuri/06-test-incarcare.md). Pe Render (planul Free, doar citiri), utilizatorii conectați lucrează fără erori, dar 50 de login-uri în aceeași secundă depășesc procesorul gratuit; detalii în [planul 09](planuri/09-publicare.md).
 - **Integrare ulterioară cu Bitrix24 și alte aplicații:** totul trece printr-un API REST (`/api/...`), iar vizitele au un câmp `externalId` pentru ID-ul din sistemul extern.
 - **Doar date inventate:** baza se umple cu un script de seed.
 
