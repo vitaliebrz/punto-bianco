@@ -44,12 +44,13 @@ punto-bianco/
 │     ├─ index.css            Tailwind + sistemul de design (@theme: culori, font, umbre, animații)
 │     ├─ fonts.css            declarațiile fontului MULLER
 │     ├─ calendar.css         calendarul (FullCalendar) în culorile brandului
-│     ├─ api.js               singurul loc care vorbește cu backend-ul (token, timp limită de 20 s, erori)
+│     ├─ api.js               singurul loc care vorbește cu backend-ul (token, timp limită de 60 s, erori)
 │     ├─ useApiData.js        încărcarea datelor unei pagini (se încarcă / eroare / date)
 │     ├─ auth/                sesiunea: AuthProvider, useAuth, ProtectedRoute
 │     ├─ components/          piesele comune ale interfeței (vezi „Sistemul de design”)
 │     ├─ pages/               Login, Vizite, Vizită nouă, Detalii, Back office, Cazări, Calendar, Utilizatori
 │     ├─ navigation.js        ce pagini vede fiecare rol (meniul)
+│     ├─ pagination.js        paginarea listelor în browser (10 pe pagină)
 │     ├─ visitForm.js         starea formularului „Vizită nouă” -> datele trimise la server
 │     ├─ transferEvents.js    evenimentele calendarului (textul „Sosire 14:30 – …”, culorile)
 │     ├─ labels.js, format.js denumiri în română, data și ora în ora clinicii (afișare și citire din formular)
@@ -87,6 +88,14 @@ Stilul e scris cu **Tailwind CSS v4**. Culorile, fontul, umbrele și animațiile
 | `NotificationBell`, `StatusSummary`, `ScrollToTop` | clopoțelul, rezumatul pe statusuri, derularea la începutul paginii la fiecare schimbare de pagină |
 | `Meta`, `HomeRedirect` | iconiță + valoare (sosire, plecare, coordonator în carduri); pagina „/”, care trimite fiecare rol la prima lui pagină |
 | `PasswordToggle` | butonul cu ochi care arată / ascunde parola (login, cont nou); `FormField` îl primește prin `action` |
+| `Pagination` | „‹ Înapoi”, „Pagina 2 din 5”, „Înainte ›” sub o listă lungă; butonul de la capăt e blocat |
+
+**Butoanele** au cursorul „mânuță” la hover (regulă comună în `index.css`, pentru că Tailwind v4 nu-l mai pune); cele blocate rămân cu săgeata.
+
+**Lista vizitelor** e împărțită în pagini de câte **10**, în ordinea datei de sosire:
+- serverul trimite toată lista (`GET /api/visits` nu are parametri), iar pagina arată câte 10;
+- pagina curentă stă în adresă (`/vizite?pagina=2`), deci refresh-ul și „Înapoi” din browser o păstrează; o valoare greșită duce la prima sau ultima pagină;
+- când vor fi mii de vizite, pasul următor e paginarea pe server (`?page=`), cu aceeași interfață.
 
 **Telefon:**
 - **Meniul** e un panou care glisează din stânga. Se închide la orice schimbare de pagină (inclusiv butonul Înapoi al telefonului); cât e deschis, pagina din spate e inactivă, iar la închidere focusul revine pe butonul ☰.

@@ -1,6 +1,6 @@
 # Plan 10 — Paginarea tabelului de vizite
 
-**Ziua 4** · Ramura: `feature/visits-pagination` · Status: **în lucru**
+**Ziua 4** · Ramura: `feature/visits-pagination` · Status: **finalizat**
 
 ## Context
 Pagina „Vizite” arată acum **toate** vizitele într-o singură listă. Cu timpul, lista devine foarte lungă și greu de parcurs, mai ales pe telefon.
@@ -63,3 +63,17 @@ La final: PR **`feat: paginate the visits table`**.
    - „Înainte” până la ultima pagină, apoi „Înapoi”;
    - deschizi o vizită de pe pagina 2, apeși „Înapoi” în browser → ești tot pe pagina 2;
    - pe telefon, butoanele se apasă ușor.
+
+## Ce s-a implementat / abateri de la plan
+
+### Rezultat
+- **Pagina „Vizite”** arată câte 10 vizite, în ordinea datei de sosire, cu „‹ Înapoi”, „Pagina X din Y” și „Înainte ›” sub tabel. Cu 10 vizite sau mai puține, butoanele nu apar.
+- **Pagina stă în adresă** (`/vizite?pagina=2`); pagina 1 nu adaugă nimic în adresă (`/vizite`).
+- **Antetul** arată totalul: „23 de vizite, în ordinea datei de sosire.” (cu „de” de la 20 în sus, ca în română).
+- **Teste:** 17 pentru `pagination.js`, 6 pentru pagina cu 23 de vizite. Frontend: 131 de teste, lint fără avertismente, build OK.
+
+### Abateri
+| Plan | Ce s-a făcut | De ce |
+|---|---|---|
+| — | **reparație în plus:** cursorul „mânuță” pe toate butoanele (`index.css`), commit separat | găsită la verificarea manuală: Tailwind v4 lasă săgeata pe butoane, inclusiv pe Înapoi / Înainte și pe butoanele din Back office |
+| testul „adresa devine `?pagina=2`” | testat invers: `/vizite?pagina=2` deschide direct vizitele 11–20 | în teste, adresa din `MemoryRouter` nu se vede; ce contează (refresh-ul păstrează pagina) e acoperit |

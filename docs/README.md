@@ -112,7 +112,7 @@ npm test            # 354 de teste: validare, roluri, API, utilizatori, notific�
 npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
-npm test            # 100 de teste: login și sesiune, formular, liste, butoane de status, utilizatori, meniu, clopoțel, cu serverul simulat
+npm test            # 131 de teste: login și sesiune, formular, liste și paginare, butoane de status, utilizatori, meniu, clopoțel, publicare, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.
