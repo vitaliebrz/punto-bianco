@@ -14,6 +14,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   7. [Code review înainte de publicare: reparații](planuri/07-code-review-reparatii.md)
   8. [Gestionarea utilizatorilor (Admin)](planuri/08-gestionare-utilizatori.md)
   9. [Publicarea aplicației (Neon, Render, Vercel)](planuri/09-publicare.md)
+  10. [Paginarea tabelului de vizite](planuri/10-paginare-vizite.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
@@ -144,7 +145,7 @@ npm test            # 354 de teste: validare, roluri, API, utilizatori, notific�
 npm run load-test   # test de încărcare: 50 de utilizatori simultan, 60 s (cu backend-ul pornit; scrie în baza dev și curăță la final)
 
 cd frontend
-npm test            # 100 de teste: login și sesiune, formular, liste, butoane de status, utilizatori, meniu, clopoțel, cu serverul simulat
+npm test            # 131 de teste: login și sesiune, formular, liste și paginare, butoane de status, utilizatori, meniu, clopoțel, publicare, cu serverul simulat
 ```
 
 `npm run test:watch` rulează testele din nou la fiecare modificare de cod.

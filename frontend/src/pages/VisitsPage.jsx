@@ -2,16 +2,19 @@ import { Bed } from '@phosphor-icons/react/Bed'
 import { Plus } from '@phosphor-icons/react/Plus'
 import { UsersThree } from '@phosphor-icons/react/UsersThree'
 import { Van } from '@phosphor-icons/react/Van'
-import { Link } from 'react-router-dom'
+import { useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import Button from '../components/Button'
 import EmptyState from '../components/EmptyState'
 import PageHeader from '../components/PageHeader'
 import PageState from '../components/PageState'
+import Pagination from '../components/Pagination'
 import StatusBadge from '../components/StatusBadge'
 import { formatDateTime } from '../format'
 import { APARTMENT_LABELS, peopleNames, TRANSFER_DIRECTION_LABELS } from '../labels'
 import { canAccess, PAGE_ROLES } from '../navigation'
+import { clampPage, pageCount, pageItems } from '../pagination'
 import { isReadOnly } from '../roles'
 import { useApiData } from '../useApiData'
 
@@ -42,17 +45,38 @@ function WithIcon({ icon: Icon, children }) {
   )
 }
 
-// Toate vizitele, ordonate după data sosirii (ordinea vine de la server)
+// „1 vizită”, „5 vizite”, „20 de vizite” (în română, de la 20 în sus se pune „de”)
+function visitsCount(count) {
+  if (count === 1) return '1 vizită'
+  const lastTwo = count % 100
+  return count === 0 || (lastTwo >= 1 && lastTwo <= 19) ? `${count} vizite` : `${count} de vizite`
+}
+
+// Toate vizitele, ordonate după data sosirii (ordinea vine de la server), câte 10 pe pagină.
+// Pagina curentă stă în adresă (`/vizite?pagina=2`): refresh-ul și „Înapoi” din browser o păstrează.
 export default function VisitsPage() {
   const { user } = useAuth()
   const { data: visits, error, loading, retryable, reload } = useApiData('/api/visits')
   const canCreate = canAccess(user.role, PAGE_ROLES.newVisit)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const listRef = useRef(null)
+
+  const total = visits?.length ?? 0
+  const totalPages = pageCount(total)
+  const page = clampPage(searchParams.get('pagina'), total)
+  const shownVisits = visits ? pageItems(visits, page) : []
+
+  function goToPage(next) {
+    setSearchParams(next === 1 ? {} : { pagina: String(next) })
+    // pe telefon butoanele sunt jos: urcăm la începutul tabelului (jsdom nu are scrollIntoView)
+    listRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+  }
 
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Vizite"
-        description="În ordinea datei de sosire."
+        description={visits ? `${visitsCount(total)}, în ordinea datei de sosire.` : 'În ordinea datei de sosire.'}
         readOnly={isReadOnly(user.role)}
         actions={
           canCreate && (
@@ -74,7 +98,7 @@ export default function VisitsPage() {
       )}
 
       {visits && visits.length > 0 && (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-ink-200/60">
+        <div ref={listRef} className="scroll-mt-6 overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-ink-200/60">
           {/* Antetul tabelului (doar pe ecran lat; pentru cititoarele de ecran, fiecare celulă are eticheta ei) */}
           <div
             aria-hidden="true"
@@ -90,7 +114,7 @@ export default function VisitsPage() {
           </div>
 
           <ul className="divide-y divide-ink-100">
-            {visits.map((visit) => (
+            {shownVisits.map((visit) => (
               <li
                 key={visit.id}
                 className={`relative grid grid-cols-2 gap-x-5 sm:grid-cols-3 gap-y-3 px-5 py-4 transition-colors hover:bg-mint-50/60 xl:items-center ${COLUMNS}`}
@@ -136,6 +160,8 @@ export default function VisitsPage() {
           </ul>
         </div>
       )}
+
+      {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={goToPage} />}
     </section>
   )
 }

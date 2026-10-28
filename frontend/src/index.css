@@ -83,6 +83,13 @@
     touch-action: manipulation;
   }
 
+  /* Tailwind v4 lasă butoanele cu cursorul obișnuit (săgeata); „mânuța” arată că se poate apăsa.
+     Butoanele blocate rămân cu săgeata. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
   ::selection {
     background-color: var(--color-mint-200);
     color: var(--color-ink-900);
