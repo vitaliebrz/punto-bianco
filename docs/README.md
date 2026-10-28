@@ -14,6 +14,7 @@ Aplicație web pentru clinica stomatologică Punto Bianco: organizarea vizitei f
   7. [Code review înainte de publicare: reparații](planuri/07-code-review-reparatii.md)
   8. [Gestionarea utilizatorilor (Admin)](planuri/08-gestionare-utilizatori.md)
   9. [Publicarea aplicației (Neon, Render, Vercel)](planuri/09-publicare.md)
+  10. [Paginarea tabelului de vizite](planuri/10-paginare-vizite.md)
 
 Fiecare plan se scrie **înainte** de implementare. La final primește o secțiune „Ce s-a implementat / abateri de la plan”.
 
